@@ -6,9 +6,9 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import tkinter as tk
 
-GRID_SIZE = 10
-INTERACTION_STRENGTH = 0.1 #Factor multiplied by spins in hamiltonian
-TEMPERATURE_COEFF = 0.0001 #Value of k_B * T
+GRID_SIZE = 80
+INTERACTION_STRENGTH = 1.0 #Factor multiplied by spins in hamiltonian
+TEMPERATURE_COEFF = 0.000001 #Value of k_B * T
 
 #2D for now
 class SpinGrid():
@@ -45,7 +45,7 @@ class SpinGrid():
             for yPos in range(self._sizeY):
                 #Iterate over nearest neighbours
                 for neighbour in self.GetNearestNeighbours(xPos, yPos):
-                    totalEnergy += self.GetSpin(xPos, yPos) * self.GetSpin(neighbour[0], neighbour[1])
+                    totalEnergy += -self.GetSpin(xPos, yPos) * self.GetSpin(neighbour[0], neighbour[1])
 
         return totalEnergy * INTERACTION_STRENGTH
 
@@ -58,7 +58,7 @@ class SpinGrid():
         newSpin = self.GetSpin(xPos, yPos) * -1
         energyChange = 0.0
         for neighbour in self.GetNearestNeighbours(xPos, yPos):
-            energyChange += newSpin * self.GetSpin(neighbour[0], neighbour[1])
+            energyChange += -2 * newSpin * self.GetSpin(neighbour[0], neighbour[1])
         energyChange *= INTERACTION_STRENGTH
 
         #Conditions to flip spin
@@ -86,12 +86,11 @@ for i in range(GRID_SIZE):
             grid.SetSpin(i, j, -1)
 
 def update(frame):
-    for i in range(100):
+    for i in range(10000):
         grid.Iterate()
     grid.Draw()
 
 fig, ax = plt.subplots()
-
 
 #threading.Thread(target=plt.show).start()
 
@@ -101,6 +100,6 @@ root.wm_title("Ising Model Simulation")
 canvas = FigureCanvasTkAgg(fig, master=root)
 canvas.get_tk_widget().grid(column=0,row=1)
 
-anim = matplotlib.animation.FuncAnimation(fig, update, frames=100, blit=False)
+anim = matplotlib.animation.FuncAnimation(fig, update, frames=100000, blit=False)
 
 root.mainloop()
