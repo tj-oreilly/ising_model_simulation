@@ -1,10 +1,14 @@
-import array
+import array, threading, matplotlib
 import numpy.random as rand
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import tkinter as tk
 
 GRID_SIZE = 10
 INTERACTION_STRENGTH = 0.1 #Factor multiplied by spins in hamiltonian
-TEMPERATURE_COEFF = 0.5 #Value of k_B * T
+TEMPERATURE_COEFF = 0.0001 #Value of k_B * T
 
 #2D for now
 class SpinGrid():
@@ -21,18 +25,6 @@ class SpinGrid():
 
     def GetSpin(self, xPos, yPos):
         return self._grid[xPos * self._sizeY + yPos]
-
-    def DisplayGrid(self): #Replace with graphical representation
-        for yPos in range(self._sizeY):
-            outStr = ""
-            for xPos in range(self._sizeX):
-                if self.GetSpin(xPos, yPos) == 1:
-                    outStr += "^"
-                elif self.GetSpin(xPos, yPos) == -1:
-                    outStr += "v"
-                else:
-                    outStr += " "
-            print(outStr + "\n")
 
     def GetNearestNeighbours(self, xPos, yPos):
         neighbours = []
@@ -72,3 +64,43 @@ class SpinGrid():
         #Conditions to flip spin
         if energyChange <= 0 or rand.random() <= np.exp(-energyChange / TEMPERATURE_COEFF):
             self.SetSpin(xPos, yPos, newSpin)
+
+    def Draw(self):
+        #Build numpy array from array
+        dispArray = np.zeros((self._sizeX, self._sizeY))
+        for xPos in range(self._sizeX):
+            for yPos in range(self._sizeY):
+                dispArray[xPos][yPos] = self.GetSpin(xPos, yPos)
+
+        cmap = matplotlib.colors.ListedColormap(['k', 'w']) #White and black for spin states
+        ax.matshow(dispArray, cmap=cmap)
+
+#Initial spin state
+grid = SpinGrid(GRID_SIZE, GRID_SIZE)
+for i in range(GRID_SIZE):
+    for j in range(GRID_SIZE):
+        randNum = rand.randint(1, 3)
+        if randNum == 1:
+            grid.SetSpin(i, j, 1)
+        else:
+            grid.SetSpin(i, j, -1)
+
+def update(frame):
+    for i in range(100):
+        grid.Iterate()
+    grid.Draw()
+
+fig, ax = plt.subplots()
+
+
+#threading.Thread(target=plt.show).start()
+
+root = tk.Tk()
+root.wm_title("Ising Model Simulation")
+
+canvas = FigureCanvasTkAgg(fig, master=root)
+canvas.get_tk_widget().grid(column=0,row=1)
+
+anim = matplotlib.animation.FuncAnimation(fig, update, frames=100, blit=False)
+
+root.mainloop()
