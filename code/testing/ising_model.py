@@ -1,4 +1,4 @@
-import array, threading, matplotlib
+import array, threading, matplotlib, time
 import numpy.random as rand
 import numpy as np
 import matplotlib.pyplot as plt
@@ -6,15 +6,17 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import tkinter as tk
 
-GRID_SIZE = 80
+GRID_SIZE = 50
 INTERACTION_STRENGTH = 1.0 #Factor multiplied by spins in hamiltonian
-TEMPERATURE_COEFF = 0.000001 #Value of k_B * T
+BETA = 1000 #Value of 1 / k_B * T
 
 #2D for now
 class SpinGrid():
     def __init__(self, sizeX, sizeY):
         self._sizeX = sizeX
         self._sizeY = sizeY
+        self._thd = None
+        self._threadFinished = True
 
         #Build grid of 0s (to be populated with -1 or +1 for spins)
         self._grid = array.array("i", [0 for i in range(sizeX * sizeY)])
@@ -49,23 +51,37 @@ class SpinGrid():
 
         return totalEnergy * INTERACTION_STRENGTH
 
-    def Iterate(self):
-        #Choose a random spin
-        xPos = rand.randint(0, self._sizeX)
-        yPos = rand.randint(0, self._sizeY)
+    def Iterate(self, repeats):
+        
+        self._threadFinished = False
+        for i in range(repeats):
+            #Choose a random spin
+            xPos = rand.randint(0, self._sizeX)
+            yPos = rand.randint(0, self._sizeY)
 
-        #Calculate energy change if this spin flips
-        newSpin = self.GetSpin(xPos, yPos) * -1
-        energyChange = 0.0
-        for neighbour in self.GetNearestNeighbours(xPos, yPos):
-            energyChange += -2 * newSpin * self.GetSpin(neighbour[0], neighbour[1])
-        energyChange *= INTERACTION_STRENGTH
+            #Calculate energy change if this spin flips
+            newSpin = self.GetSpin(xPos, yPos) * -1
+            energyChange = 0.0
+            for neighbour in self.GetNearestNeighbours(xPos, yPos):
+                energyChange += -2 * newSpin * self.GetSpin(neighbour[0], neighbour[1])
+            energyChange *= INTERACTION_STRENGTH
 
-        #Conditions to flip spin
-        if energyChange <= 0 or rand.random() <= np.exp(-energyChange / TEMPERATURE_COEFF):
-            self.SetSpin(xPos, yPos, newSpin)
+            #Conditions to flip spin
+            if energyChange <= 0 or rand.random() <= np.exp(-energyChange * BETA):
+                self.SetSpin(xPos, yPos, newSpin)
+
+        self._threadFinished = True
+
+    def StartIterateThread(self, repeats):
+        if self._threadFinished:
+            self._thd = threading.Thread(target=self.Iterate, args=(repeats,))
+            self._thd.start()
 
     def Draw(self):
+        #Only draws if thread has finished
+        if not self._threadFinished:
+            return
+
         #Build numpy array from array
         dispArray = np.zeros((self._sizeX, self._sizeY))
         for xPos in range(self._sizeX):
@@ -86,20 +102,24 @@ for i in range(GRID_SIZE):
             grid.SetSpin(i, j, -1)
 
 def update(frame):
-    for i in range(10000):
-        grid.Iterate()
+    grid.StartIterateThread(10000)
     grid.Draw()
+
+def quit():
+    root.quit()
+    root.destroy()
 
 fig, ax = plt.subplots()
 
-#threading.Thread(target=plt.show).start()
-
 root = tk.Tk()
+root.protocol("WM_DELETE_WINDOW", quit)
 root.wm_title("Ising Model Simulation")
 
 canvas = FigureCanvasTkAgg(fig, master=root)
 canvas.get_tk_widget().grid(column=0,row=1)
 
-anim = matplotlib.animation.FuncAnimation(fig, update, frames=100000, blit=False)
+#Causes window to not respond to events smoothly (move drawing code into thread as well?)
+#Or handle rendering without matplotlib (could be easier)
+anim = matplotlib.animation.FuncAnimation(fig, update, frames=(2**64), interval=1000, repeat=False, blit=False)
 
 root.mainloop()
