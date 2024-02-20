@@ -91,23 +91,28 @@ class SpinGrid():
         cmap = matplotlib.colors.ListedColormap(['k', 'w']) #White and black for spin states
         ax.matshow(dispArray, cmap=cmap)
 
-#Initial spin state
-grid = SpinGrid(GRID_SIZE, GRID_SIZE)
-for i in range(GRID_SIZE):
-    for j in range(GRID_SIZE):
-        randNum = rand.randint(1, 3)
-        if randNum == 1:
-            grid.SetSpin(i, j, 1)
-        else:
-            grid.SetSpin(i, j, -1)
+def InitSpins(grid):
+    #Initial random spin arrangement 
+    for i in range(grid._sizeX):
+        for j in range(grid._sizeY):
+            randNum = rand.randint(1, 3)
+            if randNum == 1:
+                grid.SetSpin(i, j, 1)
+            else:
+                grid.SetSpin(i, j, -1)
 
 def update(frame):
     grid.StartIterateThread(10000)
     grid.Draw()
 
+<<<<<<< Updated upstream
 def quit():
     root.quit()
     root.destroy()
+=======
+grid = SpinGrid(GRID_SIZE, GRID_SIZE)
+InitSpins(grid)
+>>>>>>> Stashed changes
 
 fig, ax = plt.subplots()
 
