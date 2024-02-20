@@ -3,12 +3,18 @@ import numpy.random as rand
 import numpy as np
 import pygame
 
-GRID_SIZE = 100
+####Constants
+BOLTZMANN = 1.38e-23
+
+####Editable
+GRID_SIZE = 200
 INTERACTION_STRENGTH = 1.0 #Factor multiplied by spins in hamiltonian
-BETA = 1000 #Value of 1 / k_B * T
-WINDOW_SIZE = (800,800)
-MATRIX_BORDER = 100
+TEMPERATURE = 273 #Temperature value
+WINDOW_SIZE = (1600,800)
 ITERATION_COUNT = 10000
+
+####
+BETA = 1.0 / (TEMPERATURE * BOLTZMANN)
 
 #2D for now
 class SpinGrid():
@@ -18,6 +24,9 @@ class SpinGrid():
         self._thd = None
         self._threadFinished = True
         self._drawFinished = False
+
+        self._graphPoints = []
+        self._iterationNum = 0
 
         #Build grid of 0s (to be populated with -1 or +1 for spins)
         self._grid = array.array("i", [0 for i in range(sizeX * sizeY)])
@@ -55,10 +64,15 @@ class SpinGrid():
     def Iterate(self, repeats):
         
         self._threadFinished = False
+
+        randomX = rand.randint(0, self._sizeX, repeats)
+        randomY = rand.randint(0, self._sizeY, repeats)
+        randomFloats = rand.random(repeats)
+
         for i in range(repeats):
             #Choose a random spin
-            xPos = rand.randint(0, self._sizeX)
-            yPos = rand.randint(0, self._sizeY)
+            xPos = randomX[i]
+            yPos = randomY[i]
 
             #Calculate energy change if this spin flips
             newSpin = self.GetSpin(xPos, yPos) * -1
@@ -68,10 +82,11 @@ class SpinGrid():
             energyChange *= INTERACTION_STRENGTH
 
             #Conditions to flip spin
-            if energyChange <= 0 or rand.random() <= np.exp(-energyChange * BETA):
+            if energyChange <= 0 or randomFloats[i] <= np.exp(-energyChange * BETA):
                 self.SetSpin(xPos, yPos, newSpin)
 
         self._threadFinished = True
+        self._iterationNum += repeats
 
     def StartIterateThread(self, repeats):
         """Starts the iteration thread and doesn't start the next job until the results have been drawn.
@@ -85,37 +100,46 @@ class SpinGrid():
 
             self._drawFinished = False
 
+    def BuildGraph(self, currentWindowSize, matrixSize):
+
+        ratio = 1.5 #x to y ratio
+        graphSize = currentWindowSize[0] / 2 - 100 #x size
+        yMidpoint = 50 + matrixSize / 2
+
+        pygame.draw.rect(window, [255, 255, 255], pygame.Rect(currentWindowSize[0]/2 + 50, yMidpoint - graphSize / (2 * ratio), graphSize, graphSize / ratio))
+    
     def Draw(self):
         #Only draws if thread has finished
         if not self._threadFinished:
             return
 
-        startTime = time.time()
+        currentWindowSize = window.get_size()
 
-        window.fill([150,150,150])
+        window.fill([200,200,200])
 
+        #Text
+        text_surface = main_font.render(f'Temperature: {TEMPERATURE} K    Iteration: {self._iterationNum}', True, (0, 0, 0))
+        window.blit(text_surface, (50, 10))
+    
         #Range for matrix
-        xRange = (MATRIX_BORDER, WINDOW_SIZE[0] - MATRIX_BORDER)
-        xSize = (xRange[1] - xRange[0]) / self._sizeX
-
-        yRange = (MATRIX_BORDER, WINDOW_SIZE[1] - MATRIX_BORDER)
-        ySize = (xRange[1] - xRange[0]) / self._sizeX
+        matrixSize = np.min([currentWindowSize[0] / 2, currentWindowSize[1]]) - 100
+        pixelSize = (np.floor(matrixSize / self._sizeX), np.floor(matrixSize / self._sizeY))
 
         for xIndex in range(self._sizeX):
-            xPos = xRange[0] + xIndex * xSize
+            xPos = 50 + pixelSize[0] * xIndex
             for yIndex in range(self._sizeY):
-                yPos = yRange[0] + yIndex * ySize
+                yPos = 50 + pixelSize[1] * yIndex
 
                 if self.GetSpin(xIndex, yIndex) == 1:
                     col = [0,0,0]
                 else:
                     col = [255,255,255]
 
-                pygame.draw.rect(window, col, pygame.Rect(xPos, yPos, xSize, ySize))
+                pygame.draw.rect(window, col, pygame.Rect(int(xPos), int(yPos), pixelSize[0], pixelSize[1]))
 
         self._drawFinished = True
 
-        print("Time: " + str(time.time() - startTime))
+        self.BuildGraph(currentWindowSize, matrixSize)
 
 def InitSpins(grid):
     #Initial random spin arrangement 
@@ -127,6 +151,14 @@ def InitSpins(grid):
             else:
                 grid.SetSpin(i, j, -1)
 
+def InitPygame():
+
+    pygame.init()
+    window = pygame.display.set_mode(WINDOW_SIZE, pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE)
+    pygame.display.set_caption("Ising Model Simulation")
+
+    return window
+
 def Update():
     grid.StartIterateThread(ITERATION_COUNT)
     grid.Draw()
@@ -134,8 +166,9 @@ def Update():
 grid = SpinGrid(GRID_SIZE, GRID_SIZE)
 InitSpins(grid)
 
-window = pygame.display.set_mode(WINDOW_SIZE, pygame.HWSURFACE | pygame.DOUBLEBUF)
+window = InitPygame()
 clock = pygame.time.Clock()
+main_font = pygame.font.Font("./font/cmu-serif-roman.ttf", size=20)
 
 while True:
     clock.tick(30)
