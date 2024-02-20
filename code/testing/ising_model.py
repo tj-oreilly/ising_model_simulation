@@ -1,6 +1,8 @@
-import array, threading, time, sys
+import array, threading, time, sys, os
 import numpy.random as rand
 import numpy as np
+import matplotlib.backends.backend_agg as agg
+import matplotlib.pyplot as plt
 import pygame
 
 ####Constants
@@ -16,6 +18,87 @@ ITERATION_COUNT = 10000
 ####
 BETA = 1.0 / (TEMPERATURE * BOLTZMANN)
 
+class Graph():
+    def __init__(self):
+        self._pos = (0,0)
+        self._size = (0,0)
+
+        self._graphPoints = []
+        self._xRange = [0,0]
+        self._yRange = [0,0]
+
+        self._fig = plt.figure(figsize=[6, 4], dpi=100)
+        self._ax = self._fig.gca()
+
+        #Member constants
+        self.BORDER = 0.05
+    
+    def SetSize(self, x, y, width, height):
+        self._pos = (x, y)
+        self._size = (width, height)
+
+    def AddPoint(self, x, y):
+        self._graphPoints.append((x, y))
+
+        if x < self._xRange[0]:
+            self._xRange[0] = x
+        elif x > self._xRange[1]:
+            self._xRange[1] = x
+
+        if y < self._yRange[0]:
+            self._yRange[0] = y
+        elif y > self._yRange[1]:
+            self._yRange[1] = y
+
+    def DrawArrow(self, screen, col, fromPos, toPos, width=1):
+        pygame.draw.line(screen, col, fromPos, toPos, width)
+
+    def DrawMatPlotLib(self, screen):
+
+        self._ax.clear()
+        self._ax.plot([self._graphPoints[i][0] for i in range(len(self._graphPoints))], [self._graphPoints[i][1] for i in range(len(self._graphPoints))])
+
+        canvas = agg.FigureCanvasAgg(self._fig)
+        canvas.draw()
+        renderer = canvas.get_renderer()
+        raw_data = renderer.tostring_rgb()
+
+        size = canvas.get_width_height()
+        surf = pygame.image.fromstring(raw_data, size, "RGB")
+        screen.blit(surf, self._pos)
+
+    def PointToPosition(self, point):
+
+        graphWidth = self._size[0] * (1 - self.BORDER*2)
+        xPos = self._pos[0] + self._size[0] * self.BORDER
+        xPos += (point[0] / (self._xRange[1] - self._xRange[0])) * graphWidth
+
+        graphHeight = self._size[1] * (1 - self.BORDER*2)
+        yPos = self._pos[1] + self._size[1] * (1 - self.BORDER)
+        yPos -= (point[0] / (self._yRange[1] - self._yRange[0])) * graphHeight
+
+        return (xPos, yPos)
+
+    def Draw(self, screen):
+        
+        pygame.draw.rect(screen, [255, 255, 255], pygame.Rect(self._pos[0], self._pos[1], self._size[0], self._size[1]))
+
+        #Draw axes
+        border = self._size[0] * self.BORDER
+
+        self.DrawArrow(screen, [0,0,0], 
+                        (self._pos[0] + border, self._pos[1] + self._size[1] - border),
+                        (self._pos[0] + self._size[0] - border, self._pos[1] + self._size[1] - border), 2)
+        self.DrawArrow(screen, [0,0,0], 
+                        (self._pos[0] + border, self._pos[1] + self._size[1] - border),
+                        (self._pos[0] + border, self._pos[1] + border), 2)
+        
+        #Draw ticks
+
+        #Draw points
+        for point in self._graphPoints:
+            pygame.draw.circle(screen, [0,0,0], self.PointToPosition(point), 2.0)
+
 #2D for now
 class SpinGrid():
     def __init__(self, sizeX, sizeY):
@@ -25,8 +108,12 @@ class SpinGrid():
         self._threadFinished = True
         self._drawFinished = False
 
-        self._graphPoints = []
         self._iterationNum = 0
+
+        self._magnetisationGraph = Graph()
+        self._magnetisationGraph.AddPoint(0,0)
+        self._magnetisationGraph.AddPoint(2,3)
+        self._magnetisationGraph.AddPoint(5,6)
 
         #Build grid of 0s (to be populated with -1 or +1 for spins)
         self._grid = array.array("i", [0 for i in range(sizeX * sizeY)])
@@ -99,31 +186,23 @@ class SpinGrid():
             self._thd.start()
 
             self._drawFinished = False
-
-    def BuildGraph(self, currentWindowSize, matrixSize):
-
-        ratio = 1.5 #x to y ratio
-        graphSize = currentWindowSize[0] / 2 - 100 #x size
-        yMidpoint = 50 + matrixSize / 2
-
-        pygame.draw.rect(window, [255, 255, 255], pygame.Rect(currentWindowSize[0]/2 + 50, yMidpoint - graphSize / (2 * ratio), graphSize, graphSize / ratio))
     
-    def Draw(self):
+    def Draw(self, screen):
         #Only draws if thread has finished
         if not self._threadFinished:
             return
 
-        currentWindowSize = window.get_size()
+        currentWindowSize = screen.get_size()
 
-        window.fill([200,200,200])
+        screen.fill([200,200,200])
 
         #Text
         text_surface = main_font.render(f'Temperature: {TEMPERATURE} K    Iteration: {self._iterationNum}', True, (0, 0, 0))
-        window.blit(text_surface, (50, 10))
+        screen.blit(text_surface, (50, 10))
     
         #Range for matrix
         matrixSize = np.min([currentWindowSize[0] / 2, currentWindowSize[1]]) - 100
-        pixelSize = (np.floor(matrixSize / self._sizeX), np.floor(matrixSize / self._sizeY))
+        pixelSize = (matrixSize / self._sizeX, matrixSize / self._sizeY)
 
         for xIndex in range(self._sizeX):
             xPos = 50 + pixelSize[0] * xIndex
@@ -135,11 +214,18 @@ class SpinGrid():
                 else:
                     col = [255,255,255]
 
-                pygame.draw.rect(window, col, pygame.Rect(int(xPos), int(yPos), pixelSize[0], pixelSize[1]))
+                pygame.draw.rect(screen, col, pygame.Rect(xPos, yPos, np.ceil(pixelSize[0]), np.ceil(pixelSize[1])))
 
         self._drawFinished = True
 
-        self.BuildGraph(currentWindowSize, matrixSize)
+        #Draw magnetisation graph
+        ratio = 1.5 #x to y
+        graphSize = currentWindowSize[0] / 2 - 100 #x size
+        position = (currentWindowSize[0]/2 + 50, 50 + (matrixSize - graphSize/ratio) / 2)
+
+        startTime = time.time()
+        self._magnetisationGraph.SetSize(position[0], position[1], graphSize, graphSize/ratio)
+        self._magnetisationGraph.DrawMatPlotLib(screen)
 
 def InitSpins(grid):
     #Initial random spin arrangement 
@@ -161,10 +247,12 @@ def InitPygame():
 
 def Update():
     grid.StartIterateThread(ITERATION_COUNT)
-    grid.Draw()
+    grid.Draw(window)
 
 grid = SpinGrid(GRID_SIZE, GRID_SIZE)
 InitSpins(grid)
+
+plt.ion()
 
 window = InitPygame()
 clock = pygame.time.Clock()
