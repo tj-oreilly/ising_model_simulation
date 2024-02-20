@@ -1,7 +1,7 @@
-import array, threading, time
+import array, threading, time, sys
 import numpy.random as rand
 import numpy as np
-import tkinter as tk
+import pygame
 
 GRID_SIZE = 100
 INTERACTION_STRENGTH = 1.0 #Factor multiplied by spins in hamiltonian
@@ -92,7 +92,7 @@ class SpinGrid():
 
         startTime = time.time()
 
-        canvas.delete("all")
+        window.fill([150,150,150])
 
         #Range for matrix
         xRange = (MATRIX_BORDER, WINDOW_SIZE[0] - MATRIX_BORDER)
@@ -107,11 +107,11 @@ class SpinGrid():
                 yPos = yRange[0] + yIndex * ySize
 
                 if self.GetSpin(xIndex, yIndex) == 1:
-                    col = "black"
+                    col = [0,0,0]
                 else:
-                    col = "white"
+                    col = [255,255,255]
 
-                #canvas.create_rectangle(xPos, yPos, xPos + xSize, yPos + ySize, fill=col)
+                pygame.draw.rect(window, col, pygame.Rect(xPos, yPos, xSize, ySize))
 
         self._drawFinished = True
 
@@ -131,45 +131,19 @@ def Update():
     grid.StartIterateThread(ITERATION_COUNT)
     grid.Draw()
 
-    #Start new thread now draw has finished
-    grid.StartIterateThread(ITERATION_COUNT)
-
-    window.after(30, Update)
-
-def Quit():
-    """Called by Tkinter on quit event.
-    """
-    window.quit()
-    window.destroy()
-
-def InitWindow():
-    """Initialises the Tkinter window.
-    @return The window instance.
-    """
-
-    root = tk.Tk()
-
-    root.protocol("WM_DELETE_WINDOW", Quit)
-    root.wm_title("Ising Model Simulation")
-    root.geometry(f'{WINDOW_SIZE[0]}x{WINDOW_SIZE[1]}')
-
-    return root
-
-def InitCanvas(window):
-    """Initialises the Tkinter canvas.
-    """
-
-    canvas = tk.Canvas(window, width=WINDOW_SIZE[0], height=WINDOW_SIZE[1])
-    canvas.pack()
-
-    return canvas
-
 grid = SpinGrid(GRID_SIZE, GRID_SIZE)
 InitSpins(grid)
 
-window = InitWindow()
-canvas = InitCanvas(window)
+window = pygame.display.set_mode(WINDOW_SIZE, pygame.HWSURFACE | pygame.DOUBLEBUF)
+clock = pygame.time.Clock()
 
-window.after(50, Update) #Main loop handling
+while True:
+    clock.tick(30)
 
-window.mainloop()
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit(0)
+
+    Update()
+    pygame.display.flip()
