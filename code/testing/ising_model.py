@@ -1,14 +1,14 @@
-import array, threading, matplotlib, time
+import array, threading, time
 import numpy.random as rand
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import tkinter as tk
 
-GRID_SIZE = 50
+GRID_SIZE = 100
 INTERACTION_STRENGTH = 1.0 #Factor multiplied by spins in hamiltonian
 BETA = 1000 #Value of 1 / k_B * T
+WINDOW_SIZE = (800,800)
+MATRIX_BORDER = 100
+ITERATION_COUNT = 10000
 
 #2D for now
 class SpinGrid():
@@ -17,6 +17,7 @@ class SpinGrid():
         self._sizeY = sizeY
         self._thd = None
         self._threadFinished = True
+        self._drawFinished = False
 
         #Build grid of 0s (to be populated with -1 or +1 for spins)
         self._grid = array.array("i", [0 for i in range(sizeX * sizeY)])
@@ -73,23 +74,48 @@ class SpinGrid():
         self._threadFinished = True
 
     def StartIterateThread(self, repeats):
-        if self._threadFinished:
+        """Starts the iteration thread and doesn't start the next job until the results have been drawn.
+        Parameters:
+            repeats : How many iterations to perform before drawing to the screen.
+        """
+
+        if self._threadFinished and self._drawFinished:
             self._thd = threading.Thread(target=self.Iterate, args=(repeats,))
             self._thd.start()
+
+            self._drawFinished = False
 
     def Draw(self):
         #Only draws if thread has finished
         if not self._threadFinished:
             return
 
-        #Build numpy array from array
-        dispArray = np.zeros((self._sizeX, self._sizeY))
-        for xPos in range(self._sizeX):
-            for yPos in range(self._sizeY):
-                dispArray[xPos][yPos] = self.GetSpin(xPos, yPos)
+        startTime = time.time()
 
-        cmap = matplotlib.colors.ListedColormap(['k', 'w']) #White and black for spin states
-        ax.matshow(dispArray, cmap=cmap)
+        canvas.delete("all")
+
+        #Range for matrix
+        xRange = (MATRIX_BORDER, WINDOW_SIZE[0] - MATRIX_BORDER)
+        xSize = (xRange[1] - xRange[0]) / self._sizeX
+
+        yRange = (MATRIX_BORDER, WINDOW_SIZE[1] - MATRIX_BORDER)
+        ySize = (xRange[1] - xRange[0]) / self._sizeX
+
+        for xIndex in range(self._sizeX):
+            xPos = xRange[0] + xIndex * xSize
+            for yIndex in range(self._sizeY):
+                yPos = yRange[0] + yIndex * ySize
+
+                if self.GetSpin(xIndex, yIndex) == 1:
+                    col = "black"
+                else:
+                    col = "white"
+
+                #canvas.create_rectangle(xPos, yPos, xPos + xSize, yPos + ySize, fill=col)
+
+        self._drawFinished = True
+
+        print("Time: " + str(time.time() - startTime))
 
 def InitSpins(grid):
     #Initial random spin arrangement 
@@ -101,28 +127,49 @@ def InitSpins(grid):
             else:
                 grid.SetSpin(i, j, -1)
 
-def update(frame):
-    grid.StartIterateThread(10000)
+def Update():
+    grid.StartIterateThread(ITERATION_COUNT)
     grid.Draw()
 
-def quit():
-    root.quit()
-    root.destroy()
-    
+    #Start new thread now draw has finished
+    grid.StartIterateThread(ITERATION_COUNT)
+
+    window.after(30, Update)
+
+def Quit():
+    """Called by Tkinter on quit event.
+    """
+    window.quit()
+    window.destroy()
+
+def InitWindow():
+    """Initialises the Tkinter window.
+    @return The window instance.
+    """
+
+    root = tk.Tk()
+
+    root.protocol("WM_DELETE_WINDOW", Quit)
+    root.wm_title("Ising Model Simulation")
+    root.geometry(f'{WINDOW_SIZE[0]}x{WINDOW_SIZE[1]}')
+
+    return root
+
+def InitCanvas(window):
+    """Initialises the Tkinter canvas.
+    """
+
+    canvas = tk.Canvas(window, width=WINDOW_SIZE[0], height=WINDOW_SIZE[1])
+    canvas.pack()
+
+    return canvas
+
 grid = SpinGrid(GRID_SIZE, GRID_SIZE)
 InitSpins(grid)
 
-fig, ax = plt.subplots()
+window = InitWindow()
+canvas = InitCanvas(window)
 
-root = tk.Tk()
-root.protocol("WM_DELETE_WINDOW", quit)
-root.wm_title("Ising Model Simulation")
+window.after(50, Update) #Main loop handling
 
-canvas = FigureCanvasTkAgg(fig, master=root)
-canvas.get_tk_widget().grid(column=0,row=1)
-
-#Causes window to not respond to events smoothly (move drawing code into thread as well?)
-#Or handle rendering without matplotlib (could be easier)
-anim = matplotlib.animation.FuncAnimation(fig, update, frames=(2**64), interval=1000, repeat=False, blit=False)
-
-root.mainloop()
+window.mainloop()
