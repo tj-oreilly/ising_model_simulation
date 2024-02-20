@@ -105,14 +105,12 @@ def update(frame):
     grid.StartIterateThread(10000)
     grid.Draw()
 
-<<<<<<< Updated upstream
 def quit():
     root.quit()
     root.destroy()
-=======
+    
 grid = SpinGrid(GRID_SIZE, GRID_SIZE)
 InitSpins(grid)
->>>>>>> Stashed changes
 
 fig, ax = plt.subplots()
 
