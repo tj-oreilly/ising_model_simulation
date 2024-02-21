@@ -3,13 +3,14 @@ import numpy.random as rand
 import numpy as np
 import matplotlib.backends.backend_agg as agg
 import matplotlib.pyplot as plt
-import pygame
+import pygame, pygame_widgets
+from pygame_widgets.button import Button
 
 ####Constants
 BOLTZMANN = 1.38e-23
 
 ####Editable
-GRID_SIZE = 50
+GRID_SIZE = 100
 INTERACTION_STRENGTH = 1.0 #Factor multiplied by spins in hamiltonian
 TEMPERATURE = 100 #Temperature value
 WINDOW_SIZE = (1600,800)
@@ -79,55 +80,82 @@ class Graph():
         surf = pygame.image.fromstring(raw_data, size, "RGB")
         screen.blit(surf, self._pos)
 
-    """def DrawArrow(self, screen, col, fromPos, toPos, width=1):
-        pygame.draw.line(screen, col, fromPos, toPos, width)
+class WindowHandler():
+    def __init__(self, screen, StartAnim):
+        self._screen = screen
 
-    def PointToPosition(self, point):
+        self._buttonWidth = 100
+        self._buttonHeight = 50
+        currentWindowSize = self._screen.get_size()
 
-        graphWidth = self._size[0] * (1 - self.BORDER*2)
-        xPos = self._pos[0] + self._size[0] * self.BORDER
-        xPos += (point[0] / (self._xRange[1] - self._xRange[0])) * graphWidth
+        #Initialise start button
+        self._startButton = Button(screen, 
+        currentWindowSize[0] * 0.75 - self._buttonWidth / 2,  # X-coordinate of top left corner
+        50,  # Y-coordinate of top left corner
+        self._buttonWidth,  # Width
+        self._buttonHeight,  # Height
+        # Optional Parameters
+        text='Start',  # Text to display
+        fontSize=20,  # Size of font
+        margin=25,  # Minimum distance between text/image and edge of button
+        inactiveColour=(100, 100, 255),  # Colour of button when not being interacted with
+        hoverColour=(50, 50, 200),  # Colour of button when being hovered over
+        pressedColour=(50, 50, 200),  # Colour of button when being clicked
+        radius=10,  # Radius of border corners (leave empty for not curved)
+        onClick=StartAnim  # Function to call when clicked on
+        )
 
-        graphHeight = self._size[1] * (1 - self.BORDER*2)
-        yPos = self._pos[1] + self._size[1] * (1 - self.BORDER)
-        yPos -= (point[0] / (self._yRange[1] - self._yRange[0])) * graphHeight
+        self._magnetisationGraph = Graph()
+        self._magnetisationGraph.SetGraphText("Iterations", "Average Spin", "Average Spin Change")
 
-        return (xPos, yPos)
-
-    def Draw(self, screen):
+    def DrawUpdate(self, grid):
         
-        pygame.draw.rect(screen, [255, 255, 255], pygame.Rect(self._pos[0], self._pos[1], self._size[0], self._size[1]))
+        currentWindowSize = self._screen.get_size()
 
-        #Draw axes
-        border = self._size[0] * self.BORDER
+        self._startButton.setX(currentWindowSize[0] * 0.75 - self._buttonWidth / 2)
+        self._screen.fill([200,200,200])
 
-        self.DrawArrow(screen, [0,0,0], 
-                        (self._pos[0] + border, self._pos[1] + self._size[1] - border),
-                        (self._pos[0] + self._size[0] - border, self._pos[1] + self._size[1] - border), 2)
-        self.DrawArrow(screen, [0,0,0], 
-                        (self._pos[0] + border, self._pos[1] + self._size[1] - border),
-                        (self._pos[0] + border, self._pos[1] + border), 2)
-        
-        #Draw ticks
+        #Text
+        text_surface = main_font.render(f'Temperature: {TEMPERATURE} K    Iteration: {grid._iterationNum}', True, (0, 0, 0))
+        self._screen.blit(text_surface, (50, 10))
+    
+        #Range for matrix
+        matrixSize = np.min([currentWindowSize[0] / 2, currentWindowSize[1]]) - 100
+        pixelSize = (matrixSize / grid._sizeX, matrixSize / grid._sizeY)
 
-        #Draw points
-        for point in self._graphPoints:
-            pygame.draw.circle(screen, [0,0,0], self.PointToPosition(point), 2.0)"""
+        for xIndex in range(grid._sizeX):
+            xPos = 50 + pixelSize[0] * xIndex
+            for yIndex in range(grid._sizeY):
+                yPos = 50 + pixelSize[1] * yIndex
+
+                if grid.GetSpin(xIndex, yIndex) == 1:
+                    col = [0,0,0]
+                else:
+                    col = [255,255,255]
+
+                pygame.draw.rect(self._screen, col, pygame.Rect(xPos, yPos, np.ceil(pixelSize[0]), np.ceil(pixelSize[1])))
+
+        self._drawFinished = True
+
+        #Draw magnetisation graph
+        ratio = 1.5 #x to y
+        graphSize = currentWindowSize[0] / 2 - 100 #x size
+        position = (currentWindowSize[0]/2 + 50, 50 + (matrixSize - graphSize/ratio) / 2)
+
+        self._magnetisationGraph.SetSize(position[0], position[1], graphSize, graphSize/ratio)
+        self._magnetisationGraph.DrawMatPlotLib(self._screen)
 
 #2D for now
 class SpinGrid():
     def __init__(self, sizeX, sizeY):
         self._sizeX = sizeX
         self._sizeY = sizeY
+        
         self._thd = None
         self._threadFinished = True
-        self._drawFinished = False
 
         self._iterationNum = 0
         self._lastAverageSpin = None
-
-        self._magnetisationGraph = Graph()
-        self._magnetisationGraph.SetGraphText("Iterations", "Average Spin", "Average Spin Change")
 
         #Build grid of 0s (to be populated with -1 or +1 for spins)
         self._grid = array.array("i", [0 for i in range(sizeX * sizeY)])
@@ -188,7 +216,6 @@ class SpinGrid():
                 self.SetSpin(xPos, yPos, newSpin)
                 totalSpinChange += newSpin * 2
 
-        self._threadFinished = True
         self._iterationNum += repeats
 
         #Calculate average spin for first time
@@ -203,7 +230,7 @@ class SpinGrid():
         else: #Adjust average only
             self._lastAverageSpin += totalSpinChange / (self._sizeX * self._sizeY)
 
-        self._magnetisationGraph.AddPoint(self._iterationNum, self._lastAverageSpin)
+        self._threadFinished = True
 
     def StartIterateThread(self, repeats):
         """Starts the iteration thread and doesn't start the next job until the results have been drawn.
@@ -211,51 +238,12 @@ class SpinGrid():
             repeats : How many iterations to perform before drawing to the screen.
         """
 
-        if self._threadFinished and self._drawFinished:
+        if self._threadFinished:
             self._thd = threading.Thread(target=self.Iterate, args=(repeats,))
             self._thd.start()
 
-            self._drawFinished = False
-    
-    def Draw(self, screen):
-        #Only draws if thread has finished
-        if not self._threadFinished:
-            return
-
-        currentWindowSize = screen.get_size()
-
-        screen.fill([200,200,200])
-
-        #Text
-        text_surface = main_font.render(f'Temperature: {TEMPERATURE} K    Iteration: {self._iterationNum}', True, (0, 0, 0))
-        screen.blit(text_surface, (50, 10))
-    
-        #Range for matrix
-        matrixSize = np.min([currentWindowSize[0] / 2, currentWindowSize[1]]) - 100
-        pixelSize = (matrixSize / self._sizeX, matrixSize / self._sizeY)
-
-        for xIndex in range(self._sizeX):
-            xPos = 50 + pixelSize[0] * xIndex
-            for yIndex in range(self._sizeY):
-                yPos = 50 + pixelSize[1] * yIndex
-
-                if self.GetSpin(xIndex, yIndex) == 1:
-                    col = [0,0,0]
-                else:
-                    col = [255,255,255]
-
-                pygame.draw.rect(screen, col, pygame.Rect(xPos, yPos, np.ceil(pixelSize[0]), np.ceil(pixelSize[1])))
-
-        self._drawFinished = True
-
-        #Draw magnetisation graph
-        ratio = 1.5 #x to y
-        graphSize = currentWindowSize[0] / 2 - 100 #x size
-        position = (currentWindowSize[0]/2 + 50, 50 + (matrixSize - graphSize/ratio) / 2)
-
-        startTime = time.time()
-        self._magnetisationGraph.SetSize(position[0], position[1], graphSize, graphSize/ratio)
-        self._magnetisationGraph.DrawMatPlotLib(screen)
+    def IsThreadFinished(self):
+        return self._threadFinished
 
 def InitSpins(grid):
     #Initial random spin arrangement 
@@ -275,26 +263,43 @@ def InitPygame():
 
     return window
 
+START = False
+
 def Update():
-    grid.StartIterateThread(ITERATION_COUNT)
-    grid.Draw(window)
+    global START
+
+    if grid.IsThreadFinished():
+        if grid._lastAverageSpin != None:
+            windowHandle._magnetisationGraph.AddPoint(grid._iterationNum, grid._lastAverageSpin)
+        windowHandle.DrawUpdate(grid)
+
+        if START:
+            grid.StartIterateThread(ITERATION_COUNT)    
+
+def StartAnim():
+    global START
+    START = True
 
 grid = SpinGrid(GRID_SIZE, GRID_SIZE)
 InitSpins(grid)
 
-plt.ion()
+plt.ioff()
 
 window = InitPygame()
 clock = pygame.time.Clock()
 main_font = pygame.font.Font("./font/cmu-serif-roman.ttf", size=20)
 
+windowHandle = WindowHandler(window, StartAnim)
+
 while True:
     clock.tick(30)
 
-    for event in pygame.event.get():
+    events = pygame.event.get()
+    for event in events:
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit(0)
 
     Update()
+    pygame_widgets.update(events)
     pygame.display.flip()
