@@ -15,7 +15,7 @@ INTERACTION_STRENGTH = 1.0 #Factor multiplied by spins in hamiltonian
 TEMPERATURE = 100 #Temperature value
 WINDOW_SIZE = (1600,800)
 FIG_DPI = 100
-ITERATION_COUNT = 10000
+ITERATION_COUNT = 1000000
 
 ####
 BETA = 1.0 / (TEMPERATURE * BOLTZMANN)
@@ -210,6 +210,8 @@ class SpinGrid():
 
     def Iterate(self, repeats):
         
+        startTime = time.time()
+
         self._threadFinished = False
 
         randomX = rand.randint(0, self._sizeX, repeats)
@@ -249,6 +251,8 @@ class SpinGrid():
             self._lastAverageSpin += totalSpinChange / (self._sizeX * self._sizeY)
 
         self._threadFinished = True
+
+        print(f"Time ({repeats} iterations): " + str(time.time() - startTime))
 
     def StartIterateThread(self, repeats):
         """Starts the iteration thread and doesn't start the next job until the results have been drawn.
