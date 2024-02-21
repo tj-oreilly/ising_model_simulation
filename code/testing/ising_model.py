@@ -81,7 +81,7 @@ class Graph():
         screen.blit(surf, self._pos)
 
 class WindowHandler():
-    def __init__(self, screen, StartAnim):
+    def __init__(self, screen, StartAnim, StopAnim):
         self._screen = screen
 
         self._buttonWidth = 100
@@ -90,7 +90,7 @@ class WindowHandler():
 
         #Initialise start button
         self._startButton = Button(screen, 
-        currentWindowSize[0] * 0.75 - self._buttonWidth / 2,  # X-coordinate of top left corner
+        currentWindowSize[0] * 0.6,  # X-coordinate of top left corner
         50,  # Y-coordinate of top left corner
         self._buttonWidth,  # Width
         self._buttonHeight,  # Height
@@ -98,11 +98,28 @@ class WindowHandler():
         text='Start',  # Text to display
         fontSize=20,  # Size of font
         margin=25,  # Minimum distance between text/image and edge of button
-        inactiveColour=(100, 100, 255),  # Colour of button when not being interacted with
-        hoverColour=(50, 50, 200),  # Colour of button when being hovered over
-        pressedColour=(50, 50, 200),  # Colour of button when being clicked
+        inactiveColour=(100, 255, 100),  # Colour of button when not being interacted with
+        hoverColour=(50, 200, 50),  # Colour of button when being hovered over
+        pressedColour=(50, 200, 50),  # Colour of button when being clicked
         radius=10,  # Radius of border corners (leave empty for not curved)
         onClick=StartAnim  # Function to call when clicked on
+        )
+
+        #Initialise stop button
+        self._stopButton = Button(screen, 
+        currentWindowSize[0] * 0.9 - self._buttonWidth,  # X-coordinate of top left corner
+        50,  # Y-coordinate of top left corner
+        self._buttonWidth,  # Width
+        self._buttonHeight,  # Height
+        # Optional Parameters
+        text='Stop',  # Text to display
+        fontSize=20,  # Size of font
+        margin=25,  # Minimum distance between text/image and edge of button
+        inactiveColour=(255, 100, 100),  # Colour of button when not being interacted with
+        hoverColour=(200, 50, 50),  # Colour of button when being hovered over
+        pressedColour=(200, 50, 50),  # Colour of button when being clicked
+        radius=10,  # Radius of border corners (leave empty for not curved)
+        onClick=StopAnim  # Function to call when clicked on
         )
 
         self._magnetisationGraph = Graph()
@@ -112,7 +129,8 @@ class WindowHandler():
         
         currentWindowSize = self._screen.get_size()
 
-        self._startButton.setX(currentWindowSize[0] * 0.75 - self._buttonWidth / 2)
+        self._startButton.setX(currentWindowSize[0] * 0.6)
+        self._stopButton.setX(currentWindowSize[0] * 0.9 - self._buttonWidth)
         self._screen.fill([200,200,200])
 
         #Text
@@ -280,6 +298,10 @@ def StartAnim():
     global START
     START = True
 
+def StopAnim():
+    global START
+    START = False
+
 grid = SpinGrid(GRID_SIZE, GRID_SIZE)
 InitSpins(grid)
 
@@ -289,7 +311,7 @@ window = InitPygame()
 clock = pygame.time.Clock()
 main_font = pygame.font.Font("./font/cmu-serif-roman.ttf", size=20)
 
-windowHandle = WindowHandler(window, StartAnim)
+windowHandle = WindowHandler(window, StartAnim, StopAnim)
 
 while True:
     clock.tick(30)
