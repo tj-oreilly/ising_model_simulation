@@ -11,7 +11,7 @@ BOLTZMANN = 1.38e-23
 ####Editable
 GRID_SIZE = 50
 INTERACTION_STRENGTH = 1.0 #Factor multiplied by spins in hamiltonian
-TEMPERATURE = 0.0001 #Temperature value
+TEMPERATURE = 100 #Temperature value
 WINDOW_SIZE = (1600,800)
 FIG_DPI = 100
 ITERATION_COUNT = 10000
@@ -256,8 +256,6 @@ class SpinGrid():
         startTime = time.time()
         self._magnetisationGraph.SetSize(position[0], position[1], graphSize, graphSize/ratio)
         self._magnetisationGraph.DrawMatPlotLib(screen)
-
-        print("Graph Time: " + str(time.time() - startTime))
 
 def InitSpins(grid):
     #Initial random spin arrangement 
