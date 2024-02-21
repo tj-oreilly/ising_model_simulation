@@ -9,10 +9,11 @@ import pygame
 BOLTZMANN = 1.38e-23
 
 ####Editable
-GRID_SIZE = 200
+GRID_SIZE = 50
 INTERACTION_STRENGTH = 1.0 #Factor multiplied by spins in hamiltonian
-TEMPERATURE = 273 #Temperature value
+TEMPERATURE = 0.0001 #Temperature value
 WINDOW_SIZE = (1600,800)
+FIG_DPI = 100
 ITERATION_COUNT = 10000
 
 ####
@@ -27,7 +28,7 @@ class Graph():
         self._xRange = [0,0]
         self._yRange = [0,0]
 
-        self._fig = plt.figure(figsize=[6, 4], dpi=100)
+        self._fig = plt.figure(figsize=[0, 0], dpi=FIG_DPI)
         self._ax = self._fig.gca()
 
         #Member constants
@@ -36,6 +37,15 @@ class Graph():
     def SetSize(self, x, y, width, height):
         self._pos = (x, y)
         self._size = (width, height)
+        self._fig.set_size_inches([self._size[0] / FIG_DPI, self._size[1] / FIG_DPI])
+
+    def GetGraphText(self):
+        return self._ax.get_xlabel(), self._ax.get_ylabel(), self._ax.get_title()
+
+    def SetGraphText(self, xLabel, yLabel, title):
+        self._ax.set_xlabel(xLabel)
+        self._ax.set_ylabel(yLabel)
+        self._ax.set_title(title)
 
     def AddPoint(self, x, y):
         self._graphPoints.append((x, y))
@@ -50,12 +60,14 @@ class Graph():
         elif y > self._yRange[1]:
             self._yRange[1] = y
 
-    def DrawArrow(self, screen, col, fromPos, toPos, width=1):
-        pygame.draw.line(screen, col, fromPos, toPos, width)
-
     def DrawMatPlotLib(self, screen):
-
+        
+        #Cache graph text then clear old plot
+        xLabel, yLabel, title = self.GetGraphText()
         self._ax.clear()
+        self.SetGraphText(xLabel, yLabel, title)
+
+        #Add all points to plot
         self._ax.plot([self._graphPoints[i][0] for i in range(len(self._graphPoints))], [self._graphPoints[i][1] for i in range(len(self._graphPoints))])
 
         canvas = agg.FigureCanvasAgg(self._fig)
@@ -66,6 +78,9 @@ class Graph():
         size = canvas.get_width_height()
         surf = pygame.image.fromstring(raw_data, size, "RGB")
         screen.blit(surf, self._pos)
+
+    """def DrawArrow(self, screen, col, fromPos, toPos, width=1):
+        pygame.draw.line(screen, col, fromPos, toPos, width)
 
     def PointToPosition(self, point):
 
@@ -97,7 +112,7 @@ class Graph():
 
         #Draw points
         for point in self._graphPoints:
-            pygame.draw.circle(screen, [0,0,0], self.PointToPosition(point), 2.0)
+            pygame.draw.circle(screen, [0,0,0], self.PointToPosition(point), 2.0)"""
 
 #2D for now
 class SpinGrid():
@@ -109,11 +124,10 @@ class SpinGrid():
         self._drawFinished = False
 
         self._iterationNum = 0
+        self._lastAverageSpin = None
 
         self._magnetisationGraph = Graph()
-        self._magnetisationGraph.AddPoint(0,0)
-        self._magnetisationGraph.AddPoint(2,3)
-        self._magnetisationGraph.AddPoint(5,6)
+        self._magnetisationGraph.SetGraphText("Iterations", "Average Spin", "Average Spin Change")
 
         #Build grid of 0s (to be populated with -1 or +1 for spins)
         self._grid = array.array("i", [0 for i in range(sizeX * sizeY)])
@@ -156,6 +170,7 @@ class SpinGrid():
         randomY = rand.randint(0, self._sizeY, repeats)
         randomFloats = rand.random(repeats)
 
+        totalSpinChange = 0
         for i in range(repeats):
             #Choose a random spin
             xPos = randomX[i]
@@ -171,9 +186,24 @@ class SpinGrid():
             #Conditions to flip spin
             if energyChange <= 0 or randomFloats[i] <= np.exp(-energyChange * BETA):
                 self.SetSpin(xPos, yPos, newSpin)
+                totalSpinChange += newSpin * 2
 
         self._threadFinished = True
         self._iterationNum += repeats
+
+        #Calculate average spin for first time
+        if self._lastAverageSpin == None:
+            avgSpin = 0
+            for x in range(self._sizeX):
+                for y in range(self._sizeY):
+                    avgSpin += self.GetSpin(x, y)
+            avgSpin /= self._sizeX * self._sizeY
+
+            self._lastAverageSpin = avgSpin
+        else: #Adjust average only
+            self._lastAverageSpin += totalSpinChange / (self._sizeX * self._sizeY)
+
+        self._magnetisationGraph.AddPoint(self._iterationNum, self._lastAverageSpin)
 
     def StartIterateThread(self, repeats):
         """Starts the iteration thread and doesn't start the next job until the results have been drawn.
@@ -226,6 +256,8 @@ class SpinGrid():
         startTime = time.time()
         self._magnetisationGraph.SetSize(position[0], position[1], graphSize, graphSize/ratio)
         self._magnetisationGraph.DrawMatPlotLib(screen)
+
+        print("Graph Time: " + str(time.time() - startTime))
 
 def InitSpins(grid):
     #Initial random spin arrangement 
