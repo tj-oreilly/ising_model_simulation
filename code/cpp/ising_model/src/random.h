@@ -163,8 +163,7 @@ public:
 	/// @return 
 	int64_t GetRandInt(int64_t from, int64_t to)
 	{
-		const double randFlt = Get01();
-		const uint64_t randInt = *(uint64_t*)(&randFlt);
+		const uint64_t randInt = _xorRnd.get_uint64();
 		return from + randInt % (to - from);
 	}
 

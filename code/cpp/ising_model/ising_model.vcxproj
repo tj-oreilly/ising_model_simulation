@@ -20,7 +20,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\random.cpp" />
     <ClCompile Include="src\spin_grid.cpp" />
   </ItemGroup>
   <ItemGroup>
