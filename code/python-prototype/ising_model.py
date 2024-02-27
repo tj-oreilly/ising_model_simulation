@@ -10,7 +10,7 @@ from pygame_widgets.button import Button
 BOLTZMANN = 1.38e-23
 
 ####Editable
-GRID_SIZE = 100
+GRID_SIZE = 200
 INTERACTION_STRENGTH = 1.0 #Factor multiplied by spins in hamiltonian
 TEMPERATURE = 100 #Temperature value
 WINDOW_SIZE = (1600,800)
@@ -85,13 +85,13 @@ class WindowHandler():
         self._screen = screen
 
         self._buttonWidth = 100
-        self._buttonHeight = 50
+        self._buttonHeight = 40
         currentWindowSize = self._screen.get_size()
 
         #Initialise start button
         self._startButton = Button(screen, 
         currentWindowSize[0] * 0.6,  # X-coordinate of top left corner
-        50,  # Y-coordinate of top left corner
+        5,  # Y-coordinate of top left corner
         self._buttonWidth,  # Width
         self._buttonHeight,  # Height
         # Optional Parameters
@@ -108,7 +108,7 @@ class WindowHandler():
         #Initialise stop button
         self._stopButton = Button(screen, 
         currentWindowSize[0] * 0.9 - self._buttonWidth,  # X-coordinate of top left corner
-        50,  # Y-coordinate of top left corner
+        5,  # Y-coordinate of top left corner
         self._buttonWidth,  # Width
         self._buttonHeight,  # Height
         # Optional Parameters
@@ -124,6 +124,9 @@ class WindowHandler():
 
         self._magnetisationGraph = Graph()
         self._magnetisationGraph.SetGraphText("Iterations", "Average Spin", "Average Spin Change")
+
+        self._energyGraph = Graph()
+        self._energyGraph.SetGraphText("Iterations", "Total Energy", "Total Energy Change")
 
     def DrawUpdate(self, grid):
         
@@ -157,11 +160,17 @@ class WindowHandler():
 
         #Draw magnetisation graph
         ratio = 1.5 #x to y
-        graphSize = currentWindowSize[0] / 2 - 100 #x size
-        position = (currentWindowSize[0]/2 + 50, 50 + (matrixSize - graphSize/ratio) / 2)
+        graphSize = currentWindowSize[1] / 2 - 60 #y size
+        position = (currentWindowSize[0] / 2 + (currentWindowSize[0]/2 - graphSize*ratio) /2, 50)
 
-        self._magnetisationGraph.SetSize(position[0], position[1], graphSize, graphSize/ratio)
+        self._magnetisationGraph.SetSize(position[0], position[1], graphSize*ratio, graphSize)
         self._magnetisationGraph.DrawMatPlotLib(self._screen)
+
+        #Draw energy graph
+        position = (currentWindowSize[0] / 2 + (currentWindowSize[0]/2 - graphSize*ratio) /2, 60 + graphSize)
+
+        self._energyGraph.SetSize(position[0], position[1], graphSize * ratio, graphSize)
+        self._energyGraph.DrawMatPlotLib(self._screen)
 
 #2D for now
 class SpinGrid():
@@ -174,6 +183,7 @@ class SpinGrid():
 
         self._iterationNum = 0
         self._lastAverageSpin = None
+        self._lastTotalEnergy = None
 
         #Build grid of 0s (to be populated with -1 or +1 for spins)
         self._grid = array.array("i", [0 for i in range(sizeX * sizeY)])
@@ -199,18 +209,17 @@ class SpinGrid():
         return neighbours
 
     def CalculateEnergy(self):
-        totalEnergy = 0.0
+        self._lastTotalEnergy = 0.0
         for xPos in range(self._sizeX):
             for yPos in range(self._sizeY):
                 #Iterate over nearest neighbours
                 for neighbour in self.GetNearestNeighbours(xPos, yPos):
-                    totalEnergy += -self.GetSpin(xPos, yPos) * self.GetSpin(neighbour[0], neighbour[1])
+                    self._lastTotalEnergy += -self.GetSpin(xPos, yPos) * self.GetSpin(neighbour[0], neighbour[1])
 
-        return totalEnergy * INTERACTION_STRENGTH
+        self._lastTotalEnergy *= INTERACTION_STRENGTH
+        return self._lastTotalEnergy
 
     def Iterate(self, repeats):
-        
-        startTime = time.time()
 
         self._threadFinished = False
 
@@ -219,6 +228,7 @@ class SpinGrid():
         randomFloats = rand.random(repeats)
 
         totalSpinChange = 0
+        totalEnergyChange = 0
         for i in range(repeats):
             #Choose a random spin
             xPos = randomX[i]
@@ -235,8 +245,15 @@ class SpinGrid():
             if energyChange <= 0 or randomFloats[i] <= np.exp(-energyChange * BETA):
                 self.SetSpin(xPos, yPos, newSpin)
                 totalSpinChange += newSpin * 2
+                totalEnergyChange += energyChange
 
         self._iterationNum += repeats
+
+        #Update total energy
+        if self._lastTotalEnergy == None:
+            self.CalculateEnergy()
+        else:
+            self._lastTotalEnergy += totalEnergyChange
 
         #Calculate average spin for first time
         if self._lastAverageSpin == None:
@@ -251,8 +268,6 @@ class SpinGrid():
             self._lastAverageSpin += totalSpinChange / (self._sizeX * self._sizeY)
 
         self._threadFinished = True
-
-        print(f"Time ({repeats} iterations): " + str(time.time() - startTime))
 
     def StartIterateThread(self, repeats):
         """Starts the iteration thread and doesn't start the next job until the results have been drawn.
@@ -293,6 +308,8 @@ def Update():
     if grid.IsThreadFinished():
         if grid._lastAverageSpin != None:
             windowHandle._magnetisationGraph.AddPoint(grid._iterationNum, grid._lastAverageSpin)
+        if grid._lastTotalEnergy != None:
+            windowHandle._energyGraph.AddPoint(grid._iterationNum, grid._lastTotalEnergy)
         windowHandle.DrawUpdate(grid)
 
         if START:
@@ -318,7 +335,7 @@ main_font = pygame.font.Font("./font/cmu-serif-roman.ttf", size=20)
 windowHandle = WindowHandler(window, StartAnim, StopAnim)
 
 while True:
-    clock.tick(30)
+    clock.tick(10)
 
     events = pygame.event.get()
     for event in events:
