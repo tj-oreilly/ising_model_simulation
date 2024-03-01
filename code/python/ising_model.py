@@ -9,10 +9,13 @@ from pygame_widgets.button import Button
 ####Constants
 BOLTZMANN = 1.38e-23
 
-####Editable
+#Model Parameters
 GRID_SIZE = 200
 INTERACTION_STRENGTH = 1.0 #Factor multiplied by spins in hamiltonian
 TEMPERATURE = 100 #Temperature value
+B_FIELD = 100.0 #External magnetic field
+
+#Other options
 WINDOW_SIZE = (1600,800)
 FIG_DPI = 100
 ITERATION_COUNT = 10000
@@ -200,12 +203,21 @@ class SpinGrid():
         self._lastTotalEnergy = 0.0
         for xPos in range(self._sizeX):
             for yPos in range(self._sizeY):
-                #Iterate over nearest neighbours
-                for neighbour in self.GetNearestNeighbours(xPos, yPos):
-                    self._lastTotalEnergy += -self.GetSpin(xPos, yPos) * self.GetSpin(neighbour[0], neighbour[1])
+                self._lastTotalEnergy += self.CalculateSingleEnergy(xPos, yPos)
 
-        self._lastTotalEnergy *= INTERACTION_STRENGTH
         return self._lastTotalEnergy
+
+    def CalculateSingleEnergy(self, x, y):
+        energy = 0.0
+
+        #Iterate over nearest neighbours
+        for neighbour in self.GetNearestNeighbours(x, y):
+            energy += -self.GetSpin(x, y) * self.GetSpin(neighbour[0], neighbour[1])
+        
+        energy *= INTERACTION_STRENGTH
+        energy += -B_FIELD * self.GetSpin(x, y)
+
+        return energy
 
     def Iterate(self, repeats):
 
@@ -224,10 +236,7 @@ class SpinGrid():
 
             #Calculate energy change if this spin flips
             newSpin = self.GetSpin(xPos, yPos) * -1
-            energyChange = 0.0
-            for neighbour in self.GetNearestNeighbours(xPos, yPos):
-                energyChange += -2 * newSpin * self.GetSpin(neighbour[0], neighbour[1])
-            energyChange *= INTERACTION_STRENGTH
+            energyChange = self.CalculateSingleEnergy(xPos, yPos)
 
             #Conditions to flip spin
             if energyChange <= 0 or randomFloats[i] <= np.exp(-energyChange * BETA):
