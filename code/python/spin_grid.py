@@ -2,9 +2,6 @@ import array, threading
 import numpy.random as rand
 import numpy as np
 
-#Constants
-BOLTZMANN = 1.38e-23
-
 class SpinGrid():
     def __init__(self, sizeX, sizeY, bField, interactionStrength):
         self._sizeX = sizeX
@@ -24,8 +21,8 @@ class SpinGrid():
         #Build grid of 0s (to be populated with -1 or +1 for spins)
         self._grid = array.array("i", [0 for i in range(sizeX * sizeY)])
 
-    def SetTemperature(self, temp):
-        self._beta = 1.0 / (temp * BOLTZMANN)
+    def SetTemperature(self, kBT):
+        self._beta = 1.0 / (kBT)
 
     def SetSpin(self, xPos, yPos, value):
         if value == 1 or value == -1:
@@ -84,7 +81,7 @@ class SpinGrid():
 
             #Calculate energy change if this spin flips
             newSpin = self.GetSpin(xPos, yPos) * -1
-            energyChange = self.CalculateSingleEnergy(xPos, yPos)
+            energyChange = -4 * self.CalculateSingleEnergy(xPos, yPos)
 
             #Conditions to flip spin
             if energyChange <= 0 or randomFloats[i] <= np.exp(-energyChange * self._beta):
