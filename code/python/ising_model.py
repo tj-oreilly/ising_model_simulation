@@ -1,6 +1,7 @@
 import spin_grid
 import array
 import numpy.random as rand
+import numpy as np
 
 #Parameters
 GRID_SIZE = 100
@@ -8,9 +9,11 @@ B_FIELD = 0.0
 INTERACTION_STRENGTH = 1.0
 
 TEMPERATURE_RANGE = (0.1, 3.0)
-TEMPERATURE_COUNT = 20
+TEMPERATURE_COUNT = 50
 
-ITERATIONS = 100000
+MAX_ITERATIONS = 10000000 #Maximum iterations to run no matter what
+SAMPLE_ITERATIONS = 100000 #The number of iterations to average the change over
+TOLERANCE = 1e-3 #A tolerance value for considering a change large enough to mean the system hasn't reached equilibrium
 
 OUTPUT_FILE_ENERGY = "./csv/energy-temp.csv"
 OUTPUT_FILE_HEAT_CAP = "./csv/heatcap-temp.csv"
@@ -39,6 +42,32 @@ def InitRandomSpins(grid):
             
             grid.SetSpin(i, j, INITIAL_GRID[i * grid._sizeY + j])
 
+def FindEquilibriumEnergy(temp):
+
+    #Set up new grid
+    grid = spin_grid.SpinGrid(GRID_SIZE, GRID_SIZE, B_FIELD, INTERACTION_STRENGTH)
+    grid.SetTemperature(temp)
+    InitRandomSpins(grid)
+
+    #Last term accounts for edge cases
+    minEnergy = -GRID_SIZE * GRID_SIZE * 4 * INTERACTION_STRENGTH - B_FIELD * GRID_SIZE * GRID_SIZE + GRID_SIZE * 4 * INTERACTION_STRENGTH
+    energyTolerance = np.abs(minEnergy * TOLERANCE)
+
+    energyValue = 0.0
+
+    cycles = int(MAX_ITERATIONS / SAMPLE_ITERATIONS)
+    for i in range(cycles):
+        grid.Iterate(SAMPLE_ITERATIONS)
+
+        #Calculate change
+        if np.abs(grid._lastTotalEnergy - energyValue) < energyTolerance:
+            energyValue = grid._lastTotalEnergy
+            break
+        else:
+            energyValue = grid._lastTotalEnergy
+
+    return energyValue
+
 outputValues = []
 
 tempInterval = (TEMPERATURE_RANGE[1] - TEMPERATURE_RANGE[0]) / (TEMPERATURE_COUNT - 1)
@@ -46,14 +75,7 @@ for tempNum in range(TEMPERATURE_COUNT):
     #Calculate temperature to test
     currentTemp = TEMPERATURE_RANGE[0] + tempInterval * tempNum
 
-    #Set up new grid
-    grid = spin_grid.SpinGrid(GRID_SIZE, GRID_SIZE, B_FIELD, INTERACTION_STRENGTH)
-    grid.SetTemperature(currentTemp)
-    InitRandomSpins(grid)
-
-    #Run iterations until energy reaches equilib
-    grid.Iterate(ITERATIONS)
-    outputValues.append((currentTemp, grid._lastTotalEnergy))
+    outputValues.append((currentTemp, FindEquilibriumEnergy(currentTemp)))
 
     print(f"kBT = {currentTemp} J calculated")
 
