@@ -11,7 +11,7 @@ import spin_grid
 #Model Parameters
 GRID_SIZE = 200
 INTERACTION_STRENGTH = 1.0 #Factor multiplied by spins in hamiltonian
-TEMPERATURE = 100 #Temperature value
+KBT = 1 #k_BT value
 B_FIELD = 0.0 #External magnetic field
 
 #Other options
@@ -121,7 +121,7 @@ class WindowHandler():
         self._screen.fill([200,200,200])
 
         #Text
-        text_surface = main_font.render(f'Temperature: {TEMPERATURE} K    Iteration: {grid._iterationNum}', True, (0, 0, 0))
+        text_surface = main_font.render(f'kT = {KBT} J   Iteration: {grid._iterationNum}', True, (0, 0, 0))
         self._screen.blit(text_surface, (50, 10))
     
         #Range for matrix
@@ -204,7 +204,7 @@ def StopAnim():
     START = False
 
 grid = spin_grid.SpinGrid(GRID_SIZE, GRID_SIZE, B_FIELD, INTERACTION_STRENGTH)
-grid.SetTemperature(TEMPERATURE)
+grid.SetTemperature(KBT)
 InitSpins(grid)
 
 plt.ioff()
