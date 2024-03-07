@@ -7,14 +7,16 @@
 #include "cqueue.h"
 #include <ShObjIdl_core.h>
 
+//#define _DEBUG
+
 using wstring = std::basic_string<wchar_t>;
 
 //Constants
-constexpr int GRID_SIZE = 100;          //Size of grid to generate
-constexpr int TEMP_COUNT = 50;          //Number of temperature readings to take
+constexpr int GRID_SIZE = 20;          //Size of grid to generate
+constexpr int TEMP_COUNT = 20;          //Number of temperature readings to take
 constexpr double TEMP_MIN = 0.1;        //Minimum value for kBT
 constexpr double TEMP_MAX = 3.0;        //Maximum value for kBT
-constexpr int ITER_COUNT = 10000000;    //Iterations to run for each temperature
+constexpr int ITER_COUNT = 1000000;    //Iterations to run for each temperature
 constexpr int ITER_AVG = 10000;         //Saved energy is averaged over the last n iterations
 
 struct EnergyValue
@@ -153,7 +155,7 @@ int main(int argc, char* argv[])
 
     //Get file names (need extensions)
 	const wstring energyCsvFile = FileSave(L"Choose energy CSV file");
-    const wstring heatCsvFile = FileSave(L"Choose heat capacity CSV file");
+    //const wstring heatCsvFile = FileSave(L"Choose heat capacity CSV file");
 
     const uint64_t seed = std::time(nullptr); //Use time as seed
     SpinGrid grid(GRID_SIZE, GRID_SIZE, seed);

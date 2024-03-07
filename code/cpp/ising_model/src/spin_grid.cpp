@@ -46,7 +46,7 @@ double SpinGrid::CalculateEnergy(std::size_t x, std::size_t y) const
 	const int8_t spinValue = GetSpin(x, y);
 	double energy = 0.0;
 	for (const auto& neighbour : GetNearestNeighbours(x, y))
-		energy += -2 * spinValue * GetSpin(neighbour.first, neighbour.second);
+		energy += -spinValue * GetSpin(neighbour.first, neighbour.second);
 
 	return energy * _interactionStrength;
 }
@@ -76,13 +76,21 @@ void SpinGrid::Iterate()
 	std::size_t y = _rnd.GetRandInt(0, _ySize);
 
 	//Calculate the energy change
-	bool newSpin = GetSpin(x, y) * -1;
-	double energyChange = -2 * CalculateEnergy(x, y);
+	int8_t newSpin = GetSpin(x, y) * -1;
+	double energyChange = -4 * CalculateEnergy(x, y); //2x to reverse energy and 2x for pair contributions
 
 	//Whether to flip spin
 	if (energyChange <= 0.0 || _rnd.Get01() <= exp(-energyChange * _beta))
 	{
 		SetSpin(x, y, newSpin);
 		_totalEnergy += energyChange;
+
+#ifdef _DEBUG
+		double cacheEnergy = _totalEnergy;
+		CalculateTotalEnergy();
+
+		if (cacheEnergy != _totalEnergy)
+			printf("Energy change calculation error.");
+#endif
 	}
 }
