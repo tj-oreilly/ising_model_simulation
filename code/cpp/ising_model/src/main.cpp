@@ -12,12 +12,13 @@
 using wstring = std::basic_string<wchar_t>;
 
 //Constants
-constexpr int GRID_SIZE = 50;          //Size of grid to generate
-constexpr int TEMP_COUNT = 50;          //Number of temperature readings to take
+constexpr int GRID_SIZE = 100;           //Size of grid to generate
+constexpr int TEMP_COUNT = 100;          //Number of temperature readings to take
 constexpr double TEMP_MIN = 0.1;        //Minimum value for kBT
-constexpr double TEMP_MAX = 10.0;        //Maximum value for kBT
-constexpr int ITER_COUNT = 1000000;    //Iterations to run for each temperature
-constexpr int ITER_AVG = 10000;         //Saved energy is averaged over the last n iterations
+constexpr double TEMP_MAX = 3.0;        //Maximum value for kBT
+constexpr int ITER_COUNT = 10000000;     //Iterations to run for each temperature
+constexpr int ITER_AVG = 100000;         //Saved energy is averaged over the last n iterations
+constexpr int GRAD_AVG = 10;            //Points to average over for the gradient calculation (heat capacity)
 
 struct EnergyValue
 {
@@ -158,27 +159,72 @@ void WriteEnergiesToFile(const std::vector<EnergyValue>& energies, const wstring
     fileStream.close();
 }
 
+void WriteHeatCapToFile(const std::vector<EnergyValue>& energies, const wstring& dest)
+{
+  if (dest == L"")
+    return;
+
+  //Calculate heat capacities
+  std::vector<double> heatCapacities(energies.size());
+  double gradient = 0.0;
+  int8_t count = 0;
+
+  for (int energyIndex = 0; energyIndex < energies.size(); ++energyIndex)
+  {
+    gradient = 0.0;
+    count = 0;
+
+    //Take average either side
+    for (int i = energyIndex - 1; i > max(0, energyIndex - GRAD_AVG / 2); --i)
+    {
+      gradient += (energies[i + 1].energy - energies[i].energy) / (energies[i + 1].temp - energies[i].temp);
+      ++count;
+    }
+    for (int i = energyIndex + 1; i < min(energies.size(), energyIndex + GRAD_AVG / 2); ++i)
+    {
+      gradient += (energies[i].energy - energies[i - 1].energy) / (energies[i].temp - energies[i - 1].temp);
+      ++count;
+    }
+
+    heatCapacities[energyIndex] = gradient / count;
+  }
+
+  //Write to file
+  std::ofstream fileStream;
+  fileStream.open(dest);
+
+  fileStream << "temp,heat-cap\n";
+
+  for (int energyIndex = 0; energyIndex < energies.size(); ++energyIndex)
+  {
+    fileStream << (std::to_string(energies[energyIndex].temp) + "," + std::to_string(heatCapacities[energyIndex]) + "\n");
+  }
+
+  fileStream.close();
+}
+
 int main(int argc, char* argv[])
 {
-    //Initialisation required for using windows API
-    HRESULT res = CoInitialize(NULL);
-    if (!SUCCEEDED(res))
-        return 0;
+  //Initialisation required for using windows API
+  HRESULT res = CoInitialize(NULL);
+  if (!SUCCEEDED(res))
+      return 0;
 
-    //Get file names (need extensions)
-	const wstring energyCsvFile = FileSave(L"Choose energy CSV file");
-    //const wstring heatCsvFile = FileSave(L"Choose heat capacity CSV file");
+  //Get file names (need extensions)
+  const wstring energyCsvFile = FileSave(L"Choose energy CSV file");
+  const wstring heatCsvFile = FileSave(L"Choose heat capacity CSV file");
 
-    const uint64_t seed = std::time(nullptr); //Use time as seed
-    SpinGrid grid(GRID_SIZE, GRID_SIZE, seed);
+  const uint64_t seed = std::time(nullptr); //Use time as seed
+  SpinGrid grid(GRID_SIZE, GRID_SIZE, seed);
 
-    //Generate random spin arrangement
-    std::vector<int8_t> randomSpins(GRID_SIZE*GRID_SIZE);
-    GenRandomSpins(randomSpins, seed + 1);
+  //Generate random spin arrangement
+  std::vector<int8_t> randomSpins(GRID_SIZE*GRID_SIZE);
+  GenRandomSpins(randomSpins, seed + 1);
     
-    std::vector<EnergyValue> energies(TEMP_COUNT);
-    CalculateEnergyValues(grid, randomSpins, energies);
-    WriteEnergiesToFile(energies, energyCsvFile);
+  std::vector<EnergyValue> energies(TEMP_COUNT);
+  CalculateEnergyValues(grid, randomSpins, energies);
+  WriteEnergiesToFile(energies, energyCsvFile);
+  WriteHeatCapToFile(energies, heatCsvFile);
 
-	return 0;
+  return 0;
 }
