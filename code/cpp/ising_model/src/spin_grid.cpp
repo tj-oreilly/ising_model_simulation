@@ -77,13 +77,13 @@ void SpinGrid::Iterate()
 
 	//Calculate the energy change
 	int8_t newSpin = GetSpin(x, y) * -1;
-	double energyChange = -4 * CalculateEnergy(x, y); //2x to reverse energy and 2x for pair contributions
+	double energyChange = -2 * CalculateEnergy(x, y); //It seems this is actually the correct way to do it from reading online
 
 	//Whether to flip spin
 	if (energyChange <= 0.0 || _rnd.Get01() <= exp(-energyChange * _beta))
 	{
 		SetSpin(x, y, newSpin);
-		_totalEnergy += energyChange;
+		_totalEnergy += 2* energyChange;
 
 #ifdef _DEBUG
 		double cacheEnergy = _totalEnergy;

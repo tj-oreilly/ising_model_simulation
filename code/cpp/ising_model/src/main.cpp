@@ -12,10 +12,10 @@
 using wstring = std::basic_string<wchar_t>;
 
 //Constants
-constexpr int GRID_SIZE = 20;          //Size of grid to generate
-constexpr int TEMP_COUNT = 20;          //Number of temperature readings to take
+constexpr int GRID_SIZE = 50;          //Size of grid to generate
+constexpr int TEMP_COUNT = 50;          //Number of temperature readings to take
 constexpr double TEMP_MIN = 0.1;        //Minimum value for kBT
-constexpr double TEMP_MAX = 3.0;        //Maximum value for kBT
+constexpr double TEMP_MAX = 10.0;        //Maximum value for kBT
 constexpr int ITER_COUNT = 1000000;    //Iterations to run for each temperature
 constexpr int ITER_AVG = 10000;         //Saved energy is averaged over the last n iterations
 
@@ -95,9 +95,14 @@ void GenRandomSpins(std::vector<int8_t>& spins, uint64_t seed)
 void CalculateEnergyValues(SpinGrid& grid, const std::vector<int8_t>& initialSpins, std::vector<EnergyValue>& energies)
 {
     double tempValue;
+    int64_t startTime, endTime;
 
     for (int tempNum = 0; tempNum < TEMP_COUNT; ++tempNum)
     {
+        //Timing
+        auto clock = std::chrono::system_clock::now();
+        startTime = clock.time_since_epoch() / std::chrono::microseconds(1);
+
         //Temperature to test
         tempValue = TEMP_MIN + (TEMP_MAX - TEMP_MIN) * (double(tempNum) / double(TEMP_COUNT - 1));
         grid.SetTemperature(tempValue);
@@ -125,6 +130,13 @@ void CalculateEnergyValues(SpinGrid& grid, const std::vector<int8_t>& initialSpi
 
         meanEnergy /= count;
         energies[tempNum] = EnergyValue({ tempValue, meanEnergy });
+
+        clock = std::chrono::system_clock::now();
+        endTime = clock.time_since_epoch() / std::chrono::microseconds(1);
+
+        double timeTaken = (endTime - startTime) / 1000000.0;
+        std::string printStr = "Temperature: " + std::to_string(tempValue) + ", Time Taken: " + std::to_string(timeTaken) + "\n";
+        std::cout << printStr;
     }
 }
 
