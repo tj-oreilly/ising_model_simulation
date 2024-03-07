@@ -1,5 +1,11 @@
 #include "spin_grid.h"
 
+void SpinGrid::SetTemperature(double kBT)
+{
+	if (kBT > 0.0)
+		_beta = 1.0 / kBT;
+}
+
 void SpinGrid::SetSpin(std::size_t x, std::size_t y, int8_t spin)
 {
 	_spinGrid[x * _ySize + y] = spin;
@@ -8,6 +14,15 @@ void SpinGrid::SetSpin(std::size_t x, std::size_t y, int8_t spin)
 int8_t SpinGrid::GetSpin(std::size_t x, std::size_t y) const
 {
 	return _spinGrid[x * _ySize + y];
+}
+
+void SpinGrid::SetGrid(const std::vector<int8_t>& grid)
+{
+	if (grid.size() == _xSize * _ySize)
+	{
+		_spinGrid = grid;
+		CalculateTotalEnergy();
+	}
 }
 
 NeighbourList SpinGrid::GetNearestNeighbours(std::size_t x, std::size_t y) const
@@ -26,6 +41,34 @@ NeighbourList SpinGrid::GetNearestNeighbours(std::size_t x, std::size_t y) const
 	return neighbours;
 }
 
+double SpinGrid::CalculateEnergy(std::size_t x, std::size_t y) const
+{
+	const int8_t spinValue = GetSpin(x, y);
+	double energy = 0.0;
+	for (const auto& neighbour : GetNearestNeighbours(x, y))
+		energy += -spinValue * GetSpin(neighbour.first, neighbour.second);
+
+	return energy * _interactionStrength;
+}
+
+void SpinGrid::CalculateTotalEnergy()
+{
+	_totalEnergy = 0.0;
+
+	for (std::size_t x = 0; x < _xSize; ++x)
+	{
+		for (std::size_t y = 0; y < _ySize; ++y)
+		{
+			_totalEnergy += CalculateEnergy(x, y);
+		}
+	}
+}
+
+double SpinGrid::GetTotalEnergy() const
+{
+	return _totalEnergy;
+}
+
 /// @brief Performs one iteration to try and change a random spin in the grid.
 void SpinGrid::Iterate()
 {
@@ -33,16 +76,21 @@ void SpinGrid::Iterate()
 	std::size_t y = _rnd.GetRandInt(0, _ySize);
 
 	//Calculate the energy change
-	bool newSpin = GetSpin(x, y) * -1;
-
-	double energyChange = 0.0;
-	for (const auto& neighbour : GetNearestNeighbours(x, y))
-		energyChange += -2 * newSpin * GetSpin(neighbour.first, neighbour.second);
-	energyChange *= _interactionStrength;
+	int8_t newSpin = GetSpin(x, y) * -1;
+	double energyChange = -2 * CalculateEnergy(x, y); //It seems this is actually the correct way to do it from reading online
 
 	//Whether to flip spin
 	if (energyChange <= 0.0 || _rnd.Get01() <= exp(-energyChange * _beta))
 	{
 		SetSpin(x, y, newSpin);
+		_totalEnergy += 2* energyChange;
+
+#ifdef _DEBUG
+		double cacheEnergy = _totalEnergy;
+		CalculateTotalEnergy();
+
+		if (cacheEnergy != _totalEnergy)
+			printf("Energy change calculation error.");
+#endif
 	}
 }
