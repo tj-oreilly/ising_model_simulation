@@ -3,7 +3,13 @@
 void SpinGrid::SetTemperature(double kBT)
 {
 	if (kBT > 0.0)
+	{
 		_beta = 1.0 / kBT;
+
+		//Calculate probabilities
+		_exps[0] = exp(-4.0 * _beta);
+		_exps[1] = exp(-8.0 * _beta);
+	}
 }
 
 void SpinGrid::SetSpin(std::size_t x, std::size_t y, int8_t spin)
@@ -79,8 +85,15 @@ void SpinGrid::Iterate()
 	int8_t newSpin = GetSpin(x, y) * -1;
 	double energyChange = -2 * CalculateEnergy(x, y); //It seems this is actually the correct way to do it from reading online
 
+	//Use cached exponentials
+	double expValue;
+	if (energyChange == 4.0)
+		expValue = _exps[0];
+	else
+		expValue = _exps[1];
+
 	//Whether to flip spin
-	if (energyChange <= 0.0 || _rnd.Get01() <= exp(-energyChange * _beta))
+	if (energyChange <= 0.0 || _rnd.Get01() <= expValue)
 	{
 		SetSpin(x, y, newSpin);
 		_totalEnergy += 2* energyChange;

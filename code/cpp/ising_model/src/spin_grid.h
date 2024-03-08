@@ -33,6 +33,7 @@ private:
 
 	double _totalEnergy = 0.0;
 
+	double _exps[2];
 	double _interactionStrength = 1.0;
 	double _beta = 1.0;
 };
