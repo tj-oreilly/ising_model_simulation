@@ -3,20 +3,22 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <thread>
 #include "spin_grid.h"
 #include "cqueue.h"
 #include <ShObjIdl_core.h>
 
 //#define _DEBUG
+#define THREADED
 
 using wstring = std::basic_string<wchar_t>;
 
 //Constants
 constexpr int GRID_SIZE = 100;           //Size of grid to generate
-constexpr int TEMP_COUNT = 100;          //Number of temperature readings to take
+constexpr int TEMP_COUNT = 200;          //Number of temperature readings to take
 constexpr double TEMP_MIN = 0.1;        //Minimum value for kBT
 constexpr double TEMP_MAX = 3.0;        //Maximum value for kBT
-constexpr int ITER_COUNT = 10000000;     //Iterations to run for each temperature
+constexpr int ITER_COUNT = 1000000;     //Iterations to run for each temperature
 constexpr int ITER_AVG = 100000;         //Saved energy is averaged over the last n iterations
 constexpr int GRAD_AVG = 10;            //Points to average over for the gradient calculation (heat capacity)
 
@@ -93,52 +95,102 @@ void GenRandomSpins(std::vector<int8_t>& spins, uint64_t seed)
     }
 }
 
-void CalculateEnergyValues(SpinGrid& grid, const std::vector<int8_t>& initialSpins, std::vector<EnergyValue>& energies)
+void EnergyThread(SpinGrid& grid, int tempNum, std::vector<EnergyValue>& energyValues, const std::vector<int8_t>& initialSpins)
 {
-    double tempValue;
-    int64_t startTime, endTime;
+  double tempValue;
+  int64_t startTime, endTime;
 
-    for (int tempNum = 0; tempNum < TEMP_COUNT; ++tempNum)
+  //Timing
+  auto clock = std::chrono::system_clock::now();
+  startTime = clock.time_since_epoch() / std::chrono::microseconds(1);
+
+  //Temperature to test
+  tempValue = TEMP_MIN + (TEMP_MAX - TEMP_MIN) * (double(tempNum) / double(TEMP_COUNT - 1));
+  grid.SetTemperature(tempValue);
+  grid.SetGrid(initialSpins);
+
+  //Buffer for calculating mean energy
+  cqueue<double> buff(ITER_AVG);
+
+  //Iterations (brute force for now)
+  for (int i = 0; i < ITER_COUNT; ++i)
+  {
+    grid.Iterate();
+    buff.push_back(grid.GetTotalEnergy());
+  }
+
+  //Calculate mean
+  double meanEnergy = 0.0;
+  int count = 0;
+  while (!buff.empty())
+  {
+    meanEnergy += buff.back();
+    buff.pop_back();
+    ++count;
+  }
+
+  meanEnergy /= count;
+  energyValues[tempNum] = EnergyValue({ tempValue, meanEnergy });
+
+  clock = std::chrono::system_clock::now();
+  endTime = clock.time_since_epoch() / std::chrono::microseconds(1);
+
+  double timeTaken = (endTime - startTime) / 1000000.0;
+  std::string printStr = "Temperature: " + std::to_string(tempValue) + ", Time Taken: " + std::to_string(timeTaken) + "\n";
+  std::cout << printStr;
+}
+
+void CalculateEnergyValues(uint64_t seed, const std::vector<int8_t>& initialSpins, std::vector<EnergyValue>& energies)
+{
+  auto clock = std::chrono::system_clock::now();
+  int64_t startTime = clock.time_since_epoch() / std::chrono::microseconds(1);
+
+#ifdef THREADED
+  const unsigned int threadCount = std::thread::hardware_concurrency();
+
+  //Initialise SpinGrid instance for each thread
+  std::vector<SpinGrid> gridArray;
+  gridArray.reserve(threadCount);
+
+  for (unsigned int i = 0; i < threadCount; ++i)
+    gridArray.push_back(SpinGrid(GRID_SIZE, GRID_SIZE, seed + (i+1)));
+
+  //Split temps by thread num
+  const int perThread = (int)std::ceil(double(TEMP_COUNT) / threadCount);
+
+  //Start threading
+  std::vector<std::thread> threads(threadCount);
+  int tempNum;
+
+  for (int i = 0; i < perThread; ++i)
+  {
+    for (unsigned int threadIndex = 0; threadIndex < threadCount; ++threadIndex)
     {
-        //Timing
-        auto clock = std::chrono::system_clock::now();
-        startTime = clock.time_since_epoch() / std::chrono::microseconds(1);
+      //Wait for previous execution to finish
+      if (threads[threadIndex].joinable())
+        threads[threadIndex].join();
 
-        //Temperature to test
-        tempValue = TEMP_MIN + (TEMP_MAX - TEMP_MIN) * (double(tempNum) / double(TEMP_COUNT - 1));
-        grid.SetTemperature(tempValue);
-        grid.SetGrid(initialSpins);
+      //New thread
+      tempNum = i * threadCount + threadIndex;
+      if (tempNum >= TEMP_COUNT)
+        continue;
 
-        //Buffer for calculating mean energy
-        cqueue<double> buff(ITER_AVG);
-        
-        //Iterations (brute force for now)
-        for (int i = 0; i < ITER_COUNT; ++i)
-        {
-            grid.Iterate();
-            buff.push_back(grid.GetTotalEnergy());
-        }
-
-        //Calculate mean
-        double meanEnergy = 0.0;
-        int count = 0;
-        while (!buff.empty())
-        {
-            meanEnergy += buff.back();
-            buff.pop_back();
-            ++count;
-        }
-
-        meanEnergy /= count;
-        energies[tempNum] = EnergyValue({ tempValue, meanEnergy });
-
-        clock = std::chrono::system_clock::now();
-        endTime = clock.time_since_epoch() / std::chrono::microseconds(1);
-
-        double timeTaken = (endTime - startTime) / 1000000.0;
-        std::string printStr = "Temperature: " + std::to_string(tempValue) + ", Time Taken: " + std::to_string(timeTaken) + "\n";
-        std::cout << printStr;
+      threads[threadIndex] = std::thread(EnergyThread, std::ref(gridArray[threadIndex]), tempNum, std::ref(energies), std::ref(initialSpins));
     }
+  }
+#endif // THREADED
+
+#ifndef THREADED
+  SpinGrid grid(GRID_SIZE, GRID_SIZE, seed + 1);
+  for (int i = 0; i < TEMP_COUNT; ++i)
+  {
+    EnergyThread(grid, i, energies, initialSpins);
+  }
+#endif // !THREADED
+
+  clock = std::chrono::system_clock::now();
+  int64_t endTime = clock.time_since_epoch() / std::chrono::microseconds(1);
+  std::cout << "Total Time: " + std::to_string((endTime - startTime) / 1000000.0) + " s\n";
 }
 
 void WriteEnergiesToFile(const std::vector<EnergyValue>& energies, const wstring& dest)
@@ -210,19 +262,21 @@ int main(int argc, char* argv[])
   if (!SUCCEEDED(res))
       return 0;
 
-  //Get file names (need extensions)
+  //Get file names
   const wstring energyCsvFile = FileSave(L"Choose energy CSV file");
   const wstring heatCsvFile = FileSave(L"Choose heat capacity CSV file");
 
-  const uint64_t seed = std::time(nullptr); //Use time as seed
-  SpinGrid grid(GRID_SIZE, GRID_SIZE, seed);
+  const uint64_t seed = std::time(nullptr); //Use time as base seed
 
   //Generate random spin arrangement
   std::vector<int8_t> randomSpins(GRID_SIZE*GRID_SIZE);
   GenRandomSpins(randomSpins, seed + 1);
     
+  //Main execution
   std::vector<EnergyValue> energies(TEMP_COUNT);
-  CalculateEnergyValues(grid, randomSpins, energies);
+  CalculateEnergyValues(seed, randomSpins, energies);
+
+  //Write to CSV files
   WriteEnergiesToFile(energies, energyCsvFile);
   WriteHeatCapToFile(energies, heatCsvFile);
 
