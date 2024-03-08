@@ -68,6 +68,8 @@ void SpinGrid::CalculateTotalEnergy()
 			_totalEnergy += CalculateEnergy(x, y);
 		}
 	}
+
+	_totalEnergy /= 2; //Double counted pairs
 }
 
 double SpinGrid::GetTotalEnergy() const
@@ -96,7 +98,7 @@ void SpinGrid::Iterate()
 	if (energyChange <= 0.0 || _rnd.Get01() <= expValue)
 	{
 		SetSpin(x, y, newSpin);
-		_totalEnergy += 2* energyChange;
+		_totalEnergy += energyChange;
 
 #ifdef _DEBUG
 		double cacheEnergy = _totalEnergy;

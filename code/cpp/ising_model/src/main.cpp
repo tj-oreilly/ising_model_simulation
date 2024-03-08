@@ -15,12 +15,12 @@ using wstring = std::basic_string<wchar_t>;
 
 //Constants
 constexpr int GRID_SIZE = 100;           //Size of grid to generate
-constexpr int TEMP_COUNT = 200;          //Number of temperature readings to take
-constexpr double TEMP_MIN = 0.1;        //Minimum value for kBT
-constexpr double TEMP_MAX = 3.0;        //Maximum value for kBT
-constexpr int ITER_COUNT = 1000000;     //Iterations to run for each temperature
+constexpr int TEMP_COUNT = 500;          //Number of temperature readings to take
+constexpr double TEMP_MIN = 0.0001;        //Minimum value for kBT
+constexpr double TEMP_MAX = 4.0;        //Maximum value for kBT
+constexpr int ITER_COUNT = 10000000;     //Iterations to run for each temperature
 constexpr int ITER_AVG = 100000;         //Saved energy is averaged over the last n iterations
-constexpr int GRAD_AVG = 10;            //Points to average over for the gradient calculation (heat capacity)
+constexpr int GRAD_AVG = 30;            //Points to average over for the gradient calculation (heat capacity)
 
 struct EnergyValue
 {
@@ -175,9 +175,17 @@ void CalculateEnergyValues(uint64_t seed, const std::vector<int8_t>& initialSpin
       if (tempNum >= TEMP_COUNT)
         continue;
 
+      //Faster if using separate heap memory for each thread?
       threads[threadIndex] = std::thread(EnergyThread, std::ref(gridArray[threadIndex]), tempNum, std::ref(energies), std::ref(initialSpins));
     }
   }
+
+  for (auto& thread : threads)
+  {
+      if (thread.joinable())
+        thread.join();
+  }
+
 #endif // THREADED
 
 #ifndef THREADED
