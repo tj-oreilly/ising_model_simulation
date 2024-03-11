@@ -14,13 +14,16 @@
 using wstring = std::basic_string<wchar_t>;
 
 //Constants
-constexpr int GRID_SIZE = 100;           //Size of grid to generate
-constexpr int TEMP_COUNT = 500;          //Number of temperature readings to take
-constexpr double TEMP_MIN = 0.0001;        //Minimum value for kBT
+constexpr int GRID_SIZE = 50;          //Size of grid to generate
+constexpr int TEMP_COUNT = 16;           //Number of temperature readings to take
+constexpr double TEMP_MIN = 0.0001;     //Minimum value for kBT
 constexpr double TEMP_MAX = 4.0;        //Maximum value for kBT
-constexpr int ITER_COUNT = 10000000;     //Iterations to run for each temperature
-constexpr int ITER_AVG = 100000;         //Saved energy is averaged over the last n iterations
-constexpr int GRAD_AVG = 30;            //Points to average over for the gradient calculation (heat capacity)
+constexpr int MAX_ITER_COUNT = 1e8;    //Maximum iterations to run for each temperature
+constexpr int ITER_AVG = 1e6;           //Saved energy is averaged over the last n iterations
+constexpr int AVG_STEP = 1e4;
+constexpr int GRAD_AVG = 1;             //Points to average over for the gradient calculation (heat capacity)
+constexpr double TOLERANCE = 1e-3;
+const double MAX_ENERGY = GRID_SIZE * GRID_SIZE * 2.0;
 
 struct EnergyValue
 {
@@ -110,13 +113,40 @@ void EnergyThread(SpinGrid& grid, int tempNum, std::vector<EnergyValue>& energyV
   grid.SetGrid(initialSpins);
 
   //Buffer for calculating mean energy
-  cqueue<double> buff(ITER_AVG);
+  const int buffSize = ITER_AVG / AVG_STEP;
 
-  //Iterations (brute force for now)
-  for (int i = 0; i < ITER_COUNT; ++i)
+  cqueue<double> buff(buffSize);
+  double lastEnergy = 0.0;
+
+  //Iterations
+  for (int i = 0; i < MAX_ITER_COUNT; ++i)
   {
     grid.Iterate();
-    buff.push_back(grid.GetTotalEnergy());
+
+    if (i % AVG_STEP == 0)
+        buff.push_back(grid.GetTotalEnergy());
+
+    //Check terminating case
+    if (i % ITER_AVG == 0)
+    {
+        double currentAvg = 0.0;
+        int count = 0;
+        for (int buffIndex = 0; buffIndex < buff.size(); ++buffIndex)
+        {
+            currentAvg += buff.back(buffIndex);
+            ++count;
+        }
+
+        currentAvg /= count;
+
+        //Check if average value has changed by enough to be counted
+        if (abs(lastEnergy - currentAvg) < TOLERANCE * MAX_ENERGY)
+        {
+            std::cout << "Early exit\n"; //Output graph of energy against iterations to check out the stopping condition
+            break; //Try running a lot more iterations (for small number of temperature points) see if it changes the graph significantly
+            //RUn for different sized grids and compare. Leave running a long time when sure it's got a good stopping condition.
+        }
+    }
   }
 
   //Calculate mean
@@ -175,7 +205,6 @@ void CalculateEnergyValues(uint64_t seed, const std::vector<int8_t>& initialSpin
       if (tempNum >= TEMP_COUNT)
         continue;
 
-      //Faster if using separate heap memory for each thread?
       threads[threadIndex] = std::thread(EnergyThread, std::ref(gridArray[threadIndex]), tempNum, std::ref(energies), std::ref(initialSpins));
     }
   }
