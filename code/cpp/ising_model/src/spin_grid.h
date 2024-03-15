@@ -23,6 +23,7 @@ public:
 	void CalculateTotalEnergy();
 	void Iterate();
 	double GetTotalEnergy() const;
+	double GetMagnetisation() const;
 
 private:
 	std::size_t _xSize = 0;

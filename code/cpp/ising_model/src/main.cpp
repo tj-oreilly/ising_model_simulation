@@ -25,10 +25,11 @@ constexpr int GRAD_AVG = 5;             //Points to average over for the gradien
 //constexpr double TOLERANCE = 1e-3;
 //const double MAX_ENERGY = GRID_SIZE * GRID_SIZE * 2.0;
 
-struct EnergyValue
+struct EnergyValue // Does this need a new name because of adding magnetisation?
 {
-		double temp = 0.0;
-		double energy = 0.0;
+    double temp = 0.0;
+    double energy = 0.0;
+    double magnetisation = 0.0;
 };
 
 /// @brief Allows the user to pick a destination for a CSV file.
@@ -297,30 +298,51 @@ void WriteHeatCapToFile(const std::vector<EnergyValue>& energies, const wstring&
 	fileStream.close();
 }
 
+void writeMagnetisationToFile(const std::vector<EnergyValue>& energies, const wstring& dest)
+{
+  if (dest == L"")
+	return;
+
+  //Write to file
+  std::ofstream fileStream;
+  fileStream.open(dest);
+
+  fileStream << "temp,magnetisation\n";
+
+  for (int energyIndex = 0; energyIndex < energies.size(); ++energyIndex)
+  {
+	fileStream << (std::to_string(energies[energyIndex].temp) + "," + std::to_string(energies[energyIndex].magnetisation) + "\n");
+  }
+
+  fileStream.close();
+}
+
 int main(int argc, char* argv[])
 {
-	//Initialisation required for using windows API
-	HRESULT res = CoInitialize(NULL);
-	if (!SUCCEEDED(res))
-			return 0;
+  //Initialisation required for using windows API
+  HRESULT res = CoInitialize(NULL);
+  if (!SUCCEEDED(res))
+      return 0;
 
-	//Get file names
-	const wstring energyCsvFile = FileSave(L"Choose energy CSV file");
-	const wstring heatCsvFile = FileSave(L"Choose heat capacity CSV file");
+  //Get file names
+  const wstring energyCsvFile = FileSave(L"Choose energy CSV file");
+  const wstring heatCsvFile = FileSave(L"Choose heat capacity CSV file");
+  const wstring magnetisationCsvFile = FileSave(L"Choose magnetisation CSV file");
 
-	const uint64_t seed = std::time(nullptr); //Use time as base seed
+  const uint64_t seed = std::time(nullptr); //Use time as base seed
 
-	//Generate random spin arrangement
-	std::vector<int8_t> randomSpins(GRID_SIZE*GRID_SIZE);
-	GenRandomSpins(randomSpins, seed + 1);
-		
-	//Main execution
-	std::vector<EnergyValue> energies(TEMP_COUNT);
-	CalculateEnergyValues(seed, randomSpins, energies);
+  //Generate random spin arrangement
+  std::vector<int8_t> randomSpins(GRID_SIZE*GRID_SIZE);
+  GenRandomSpins(randomSpins, seed + 1);
+    
+  //Main execution
+  std::vector<EnergyValue> energies(TEMP_COUNT);
+  CalculateEnergyValues(seed, randomSpins, energies);
 
-	//Write to CSV files
-	WriteEnergiesToFile(energies, energyCsvFile);
-	WriteHeatCapToFile(energies, heatCsvFile);
+  //Write to CSV files
+  WriteEnergiesToFile(energies, energyCsvFile);
+  WriteHeatCapToFile(energies, heatCsvFile);
+  writeMagnetisationToFile(energies, magnetisationCsvFile);
 
-	return 0;
+  return 0;
 }
