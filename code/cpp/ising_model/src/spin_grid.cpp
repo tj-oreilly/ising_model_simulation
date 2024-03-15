@@ -101,7 +101,7 @@ void SpinGrid::Iterate()
 
 	//Calculate the energy change
 	int8_t newSpin = GetSpin(x, y) * -1;
-	double energyChange = -2 * CalculateEnergy(x, y); //It seems this is actually the correct way to do it from reading online
+	double energyChange = -2 * CalculateEnergy(x, y);
 
 	//Use cached exponentials
 	double expValue;

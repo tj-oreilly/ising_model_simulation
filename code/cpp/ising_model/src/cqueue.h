@@ -39,7 +39,7 @@ public:
 		_queue[_back] = item;
 
 		//Increase back pointer
-		if (_back == size() - 1)
+		if (_back == capacity() - 1)
 			_back = 0;
 		else
 			++_back;
@@ -47,21 +47,34 @@ public:
 		//If overwriting data
 		if (_back == _front)
 		{
-			if (_front == size() - 1)
+			if (_front == capacity() - 1)
 				_front = 0;
 			else
 				++_front;
 		}
 	}
 
-	_Type back() const
+	/// @brief Retrieves the item at the back of the queue
+	/// @param offset An offset from the back position
+	/// @return The item.
+	_Type back(std::size_t offset = 0) const
 	{
 		std::size_t index;
-		if (_back == 0)
-			index = size() - 1;
-		else
-			index = _back - 1;
 
+		//Out of range
+		if (_back == _front || (_back > _front && _back - _front >= offset) || (_back < _front && capacity() + _back - _front >= offset))
+		{
+			//Raise exception
+			return _queue[0];
+		}
+		else 
+		{
+			if (_back - offset <= 0)
+				index = capacity() - 1 - offset;
+			else
+				index = _back - 1 - offset;
+		}
+		
 		return _queue[index];
 	}
 
@@ -71,13 +84,21 @@ public:
 			return;
 
 		if (_back == 0)
-			_back = size() - 1;
+			_back = capacity() - 1;
 		else
 			--_back;
 	}
 
-private:
 	std::size_t size() const
+	{
+		if (_back >= _front)
+			return _back - _front;
+		else
+			return capacity() + _back - _front;
+	}
+
+private:
+	std::size_t capacity() const
 	{
 		return _queue.size();
 	}
