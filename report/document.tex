@@ -12,9 +12,9 @@
 	
 	\begin{titlepage}
 		\begin{center}
-			{\Huge TITLE}\\[0.5cm]
+			{\Huge Monte Carlo Simulation of Phase Transitions}\\[0.5cm]
 			\textit{Haodong Chang and Tavis O'Reilly}\\[0.3cm]
-			\textit{XXXXXXXX and 10903943}\\[0.3cm]
+			\textit{11505303 and 10903943}\\[0.3cm]
 			Department of Physics and Astronomy\\[0.3cm]
 			University of Manchester\\[0.3cm]
 			PHYS20872 Theory Computing Project\\[0.3cm]
@@ -37,10 +37,82 @@
 	\section{Introduction}
 	
 	Brief introduction to the problem.
+
+	Our discussion over phase transitions will be based on the Ising model, 
+	which is a one of the few models that can be solved analytically in two dimensions.
+
+	(To be added: definition of phase transitions, the importance of the Ising model, etc.)
 	
 	\section{Theory}
+
+	Let's consider a simple model of spins on a lattice.
+	Each spin can be in one of two states, up or down, which we will represent by $s_i = \pm 1$.
+
+	Every spin interacts with its nearest neighbours, and each pair contributes $-J s_i s_j$ to the energy, 
+	where $J$ is a constant representing the strength of the interaction.
+
+	There is also an external magnetic field, represented by $h$.
+	Every spin in the magnetic field contributes $-h s_i$ to the total energy.
+
+	A figure showing 1D and 2D lattices with spins (to be added).
+
+	Thus the total energy of the system is given by
+	\begin{equation}
+		H(\{s_i\}) = -J \sum_{\langle i,j \rangle} s_i s_j - h \sum_i s_i
+	\end{equation}
+	where the first sum is over all pairs of nearest neighbours, and the second sum is over all spins.
+	We may call the total energy as Hamiltonian in the following.
 	
-	Describe the theory of the model.
+	Our calculation and simulation will be dealt in the canonical ensemble, where the temperature $T$ is fixed.
+
+	By now, we have encountered every ingredient of the Ising model: 
+	shape of the lattice $\langle i,j \rangle$, interaction strength $J$, external magnetic field $h$, and temperature $T$.
+	
+	Given these, we can calculate the partition function of the system, which is the key to all thermodynamic properties.
+	\begin{equation}
+		Z = \sum_{\{s_i\}} e^{-\beta H(\{s_i\})}, \quad \beta = \frac{1}{k_B T}
+	\end{equation}
+	Here in canonical ensemble, the probability of finding a state $\{s_i\}$ is given by
+	\begin{equation}
+		P(\{s_i\}) = \frac{e^{-\beta H(\{s_i\})}}{Z}
+	\end{equation}
+	As you can see, states with lower energy are more likely to be found.
+
+	Then we can discuss the meaning of $J$ and $h$.
+	\begin{itemize}
+		\item If $J > 0$, neighbours with parallel spins have lower energy, so the system tends to be aligned, which is called ferromagnetic.
+		\item If $J < 0$, neighbouring spins tend to be anti-parallel, which is called anti-ferromagnetic.
+	\end{itemize}
+	\begin{itemize}
+		\item If $h > 0$, spins prefer to be $s_i = +1$.
+		\item If $h < 0$, spins prefer to be $s_i = -1$.
+	\end{itemize}
+	We can see that spins tend to align with the magnetic field, which is called paramagnetic.
+
+	(Briefly mention the concept of phase transitions. Add or not?)
+
+	In the following of the theory section, we will start from some simple cases, and then generalize to more complex ones.
+
+	\subsection{Ising Model without interaction ($J=0$)}
+
+	When there is no interaction between spins, the shape of the lattice doesn't matter at all, and the Hamiltonian becomes
+	\begin{equation}
+		H(\{s_i\}) = -h \sum_i s_i
+	\end{equation}
+	which is simply the energy of a collection of spins in a magnetic field.
+
+	Then the partition function is
+	\begin{equation}
+		\begin{aligned}
+			Z &= \sum_{\{s_i\}} e^{-\beta H(\{s_i\})} = \sum_{\{s_i\}} e^{\beta h \sum_i s_i} = \prod_i \sum_{s_i=\pm1} e^{\beta h s_i} \\
+			&= \prod_i (e^{\beta h} + e^{-\beta h}) = (e^{\beta h} + e^{-\beta h})^N = (2\cosh(\beta h))^N
+		\end{aligned}
+	\end{equation}
+
+	The energy of the system can be calculated as
+	\begin{equation}
+		E = -\frac{\partial}{\partial \beta} \ln Z = N h \tanh(\beta h)
+	\end{equation}
 	
 	\section{Implementation}
 	

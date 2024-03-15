@@ -31,6 +31,7 @@ void SpinGrid::SetGrid(const std::vector<int8_t>& grid)
 	}
 }
 
+// Periodic Boundary Conditions needed due to the method of calculating probability
 NeighbourList SpinGrid::GetNearestNeighbours(std::size_t x, std::size_t y) const
 {
 	NeighbourList neighbours;
@@ -75,6 +76,21 @@ void SpinGrid::CalculateTotalEnergy()
 double SpinGrid::GetTotalEnergy() const
 {
 	return _totalEnergy;
+}
+
+double SpinGrid::GetMagnetisation() const
+{
+	double magnetisation = 0.0;
+
+	for (std::size_t x = 0; x < _xSize; ++x)
+	{
+		for (std::size_t y = 0; y < _ySize; ++y)
+		{
+			magnetisation += GetSpin(x, y);
+		}
+	}
+
+	return magnetisation;
 }
 
 /// @brief Performs one iteration to try and change a random spin in the grid.

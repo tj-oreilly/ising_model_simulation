@@ -22,10 +22,11 @@ constexpr int ITER_COUNT = 10000000;     //Iterations to run for each temperatur
 constexpr int ITER_AVG = 100000;         //Saved energy is averaged over the last n iterations
 constexpr int GRAD_AVG = 30;            //Points to average over for the gradient calculation (heat capacity)
 
-struct EnergyValue
+struct EnergyValue // Does this need a new name because of adding magnetisation?
 {
     double temp = 0.0;
     double energy = 0.0;
+    double magnetisation = 0.0;
 };
 
 /// @brief Allows the user to pick a destination for a CSV file.
@@ -130,7 +131,7 @@ void EnergyThread(SpinGrid& grid, int tempNum, std::vector<EnergyValue>& energyV
   }
 
   meanEnergy /= count;
-  energyValues[tempNum] = EnergyValue({ tempValue, meanEnergy });
+  energyValues[tempNum] = EnergyValue({ tempValue, meanEnergy, grid.GetMagnetisation() });
 
   clock = std::chrono::system_clock::now();
   endTime = clock.time_since_epoch() / std::chrono::microseconds(1);
@@ -263,6 +264,25 @@ void WriteHeatCapToFile(const std::vector<EnergyValue>& energies, const wstring&
   fileStream.close();
 }
 
+void writeMagnetisationToFile(const std::vector<EnergyValue>& energies, const wstring& dest)
+{
+  if (dest == L"")
+	return;
+
+  //Write to file
+  std::ofstream fileStream;
+  fileStream.open(dest);
+
+  fileStream << "temp,magnetisation\n";
+
+  for (int energyIndex = 0; energyIndex < energies.size(); ++energyIndex)
+  {
+	fileStream << (std::to_string(energies[energyIndex].temp) + "," + std::to_string(energies[energyIndex].magnetisation) + "\n");
+  }
+
+  fileStream.close();
+}
+
 int main(int argc, char* argv[])
 {
   //Initialisation required for using windows API
@@ -273,6 +293,7 @@ int main(int argc, char* argv[])
   //Get file names
   const wstring energyCsvFile = FileSave(L"Choose energy CSV file");
   const wstring heatCsvFile = FileSave(L"Choose heat capacity CSV file");
+  const wstring magnetisationCsvFile = FileSave(L"Choose magnetisation CSV file");
 
   const uint64_t seed = std::time(nullptr); //Use time as base seed
 
@@ -287,6 +308,7 @@ int main(int argc, char* argv[])
   //Write to CSV files
   WriteEnergiesToFile(energies, energyCsvFile);
   WriteHeatCapToFile(energies, heatCsvFile);
+  writeMagnetisationToFile(energies, magnetisationCsvFile);
 
   return 0;
 }
