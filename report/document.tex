@@ -72,7 +72,7 @@
 	\begin{equation}
 		Z = \sum_{\{s_i\}} e^{-\beta H(\{s_i\})}, \quad \beta = \frac{1}{k_B T}
 	\end{equation}
-	Here in canonical ensemble, the probability of finding a state $\{s_i\}$ is given by
+	The canonical ensemble assigns a probability to each state $\{s_i\}$ given by
 	\begin{equation}
 		P(\{s_i\}) = \frac{e^{-\beta H(\{s_i\})}}{Z}
 	\end{equation}
@@ -111,7 +111,19 @@
 
 	The energy of the system can be calculated as
 	\begin{equation}
-		E = -\frac{\partial}{\partial \beta} \ln Z = N h \tanh(\beta h)
+		E \equiv \langle H \rangle = -\frac{\partial}{\partial \beta} \ln Z = - N h \tanh(\beta h)
+	\end{equation}
+
+	Here because of the absence of interaction, the relation between energy and magnetisation is simple, and we have
+	\begin{equation}
+		M \equiv \langle \sum_i s_i \rangle = -\frac{E}{h} = N \tanh(\beta h)
+	\end{equation}
+
+	\subsection{1D Ising Model without external field ($h=0$)}
+
+	In this case, the Hamiltonian becomes
+	\begin{equation}
+		H(\{s_i\}) = -J \sum_{i} s_i s_{i+1}
 	\end{equation}
 	
 	\section{Implementation}
