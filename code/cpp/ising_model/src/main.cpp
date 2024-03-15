@@ -165,7 +165,7 @@ void EnergyThread(SpinGrid& grid, int tempNum, std::vector<EnergyValue>& energyV
 	}
 
 	meanEnergy /= count;
-	energyValues[tempNum] = EnergyValue({ tempValue, meanEnergy });
+	energyValues[tempNum] = EnergyValue({ tempValue, meanEnergy, grid.GetMagnetisation() });
 
 	clock = std::chrono::system_clock::now();
 	endTime = clock.time_since_epoch() / std::chrono::microseconds(1);
