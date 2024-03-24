@@ -41,7 +41,7 @@
 	Our discussion over phase transitions will be based on the Ising model, 
 	which is a one of the few models that can be solved analytically in two dimensions.
 
-	(To be added: definition of phase transitions, the importance of the Ising model, etc.)
+	% (To be added: definition of phase transitions, the importance of the Ising model, etc.)
 	
 	\section{Theory}
 
@@ -57,7 +57,7 @@
 	A figure showing 1D and 2D lattices with spins (to be added).
 
 	Thus the total energy of the system is given by
-	\begin{equation}
+	\begin{equation} \label{eq:Hamiltonian}
 		H(\{s_i\}) = -J \sum_{\langle i,j \rangle} s_i s_j - h \sum_i s_i
 	\end{equation}
 	where the first sum is over all pairs of nearest neighbours, and the second sum is over all spins.
@@ -69,11 +69,11 @@
 	shape of the lattice $\langle i,j \rangle$, interaction strength $J$, external magnetic field $h$, and temperature $T$.
 	
 	Given these, we can calculate the partition function of the system, which is the key to all thermodynamic properties.
-	\begin{equation}
+	\begin{equation} \label{eq:PartitionFunction}
 		Z = \sum_{\{s_i\}} e^{-\beta H(\{s_i\})}, \quad \beta = \frac{1}{k_B T}
 	\end{equation}
 	The canonical ensemble assigns a probability to each state $\{s_i\}$ given by
-	\begin{equation}
+	\begin{equation} \label{eq:Probability}
 		P(\{s_i\}) = \frac{e^{-\beta H(\{s_i\})}}{Z}
 	\end{equation}
 	As you can see, states with lower energy are more likely to be found.
@@ -89,20 +89,20 @@
 	\end{itemize}
 	We can see that spins tend to align with the magnetic field, which is called paramagnetic.
 
-	(Briefly mention the concept of phase transitions. Add or not?)
+	% (Briefly mention the concept of phase transitions. Add or not?)
 
 	In the following of the theory section, we will start from some simple cases, and then generalize to more complex ones.
 
 	\subsection{Ising Model without interaction ($J=0$)}
 
 	When there is no interaction between spins, the shape of the lattice doesn't matter at all, and the Hamiltonian becomes
-	\begin{equation}
+	\begin{equation} \label{eq:HamiltonianNoInteraction}
 		H(\{s_i\}) = -h \sum_i s_i
 	\end{equation}
 	which is simply the energy of a collection of spins in a magnetic field.
 
 	Then the partition function is
-	\begin{equation}
+	\begin{equation} \label{eq:PartitionFunctionNoInteraction}
 		\begin{aligned}
 			Z &= \sum_{\{s_i\}} e^{-\beta H(\{s_i\})} = \sum_{\{s_i\}} e^{\beta h \sum_i s_i} = \prod_i \sum_{s_i=\pm1} e^{\beta h s_i} \\
 			&= \prod_i (e^{\beta h} + e^{-\beta h}) = (e^{\beta h} + e^{-\beta h})^N = (2\cosh(\beta h))^N
@@ -110,22 +110,59 @@
 	\end{equation}
 
 	The energy of the system can be calculated as
-	\begin{equation}
+	\begin{equation} \label{eq:EnergyNoInteraction}
 		E \equiv \langle H \rangle = -\frac{\partial}{\partial \beta} \ln Z = - N h \tanh(\beta h)
 	\end{equation}
 
 	Here because of the absence of interaction, the relation between energy and magnetisation is simple, and we have
-	\begin{equation}
+	\begin{equation} \label{eq:MagnetisationNoInteraction}
 		M \equiv \langle \sum_i s_i \rangle = -\frac{E}{h} = N \tanh(\beta h)
 	\end{equation}
 
 	\subsection{1D Ising Model without external field ($h=0$)}
 
+	% (To be added: a figure)
+
 	In this case, the Hamiltonian becomes
-	\begin{equation}
-		H(\{s_i\}) = -J \sum_{i} s_i s_{i+1}
+	\begin{equation} \label{eq:Hamiltonian1DNoField}
+		H(\{s_i\}) = -J \sum_{i=1}^{N-1} s_i s_{i+1}
 	\end{equation}
-	
+
+	The interaction makes it difficult to calculate the partition function, 
+	but considering what we have done for the 1D Ising model without interaction, 
+	we can transform the case into a non-interacting one by introducing some new variables $p_i = s_i s_{i+1}$.
+	Here $\{s_1, s_2, \cdots, s_N\}$ and $\{s_1, p_1, p_2, \cdots, p_{N-1}\}$ are equivalent descriptions of the system.
+	The inverse transform is simply $s_i = s_1 \prod_{j=1}^{i-1} p_j$.
+	Then the Hamiltonian becomes
+	\begin{equation} \label{eq:Hamiltonian1DNoFieldTransformed}
+		H(s_1, \{p_i\}) = -J \sum_{i=1}^{N-1} p_i
+	\end{equation}
+
+	Applying the result of equation \eqref{eq:PartitionFunctionNoInteraction}, we have the partition function
+	\begin{equation} \label{eq:PartitionFunction1DNoField}
+		\begin{aligned}
+			Z &= \sum_{s_1, \{p_i\}} e^{-\beta H(s_1, \{p_i\})} \\
+			&= 2(2\cosh(\beta J))^{N-1}
+		\end{aligned}
+	\end{equation}
+	The factor 2 comes from the two possible values of $s_1$.
+
+	The boundary conditions (B.C.) here needs to be specified.
+	Our discussion just now is based on free-end B.C., where the first and last spins are not connected.
+	Another common choice is periodic boundary conditions (PBC), which means $s_{N+1} = s_1$, and the Hamiltonian becomes
+	\begin{equation} \label{eq:Hamiltonian1DNoFieldPeriodic}
+		H(\{s_i\}) = -J \sum_{i=1}^{N} s_i s_{i+1}
+	\end{equation}
+
+	Similarly, we can transform $\{s_1, s_2, \cdots, s_N\}$ into $\{s_1, p_1, p_2, \cdots, p_{N-1}\}$, 
+	and calculate the partition function under PBC
+	\begin{equation} \label{eq:PartitionFunction1DNoFieldPeriodic}
+		Z = (2\cosh(\beta J))^N(1 + (\tanh(\beta J))^N)
+	\end{equation}
+
+	The advantage of PBC over free-end B.C. is that no spin is special.
+	When the lattice is large enough ($N \to \infty$), they show no difference.
+
 	\section{Implementation}
 	
 	Brief description of how the model was built into the code and how data was obtained from this.
@@ -137,5 +174,6 @@
 	\section{Conclusion}
 	
 	Conclude results.
-	
+
+
 \end{document}
