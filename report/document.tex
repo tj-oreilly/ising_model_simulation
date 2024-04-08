@@ -56,7 +56,7 @@
 
 	A figure showing 1D and 2D lattices with spins (to be added).
 
-	Thus the total energy of the system is given by
+	Thus, the total energy of the system is given by
 	\begin{equation} \label{eq:Hamiltonian}
 		H(\{s_i\}) = -J \sum_{\langle i,j \rangle} s_i s_j - h \sum_i s_i
 	\end{equation}
@@ -81,7 +81,7 @@
 	Then we can discuss the meaning of $J$ and $h$.
 	\begin{itemize}
 		\item If $J > 0$, neighbours with parallel spins have lower energy, so the system tends to be aligned, which is called ferromagnetic.
-		\item If $J < 0$, neighbouring spins tend to be anti-parallel, which is called anti-ferromagnetic.
+		\item If $J < 0$, neighbouring spins tend to be antiparallel, which is called anti-ferromagnetic.
 	\end{itemize}
 	\begin{itemize}
 		\item If $h > 0$, spins prefer to be $s_i = +1$.
@@ -162,6 +162,123 @@
 
 	The advantage of PBC over free-end B.C. is that no spin is special.
 	When the lattice is large enough ($N \to \infty$), they show no difference.
+
+	\subsection{General 1D Ising model($J\neq0, h\neq0$)}
+
+	First, let's consider a simple Ising model with only two spins under PBC.
+	The Hamiltonian is
+	\begin{equation} \label{eq:Hamiltonian1DGeneral2Spins}
+		H(s_1, s_2) = -J s_1 s_2 - J s_2 s_1 - hs_1 - hs_2
+	\end{equation}
+
+	Define a matrix $P$, we can see why we need it later.
+	\begin{equation} \label{eq:MatrixP}
+		P = \begin{pmatrix}
+			e^{\beta(J+h)} & e^{-\beta J} \\
+			e^{-\beta J} & e^{\beta(J-h)}
+		\end{pmatrix}
+	\end{equation}
+
+	Then the partition function is
+	\begin{equation} \label{eq:PartitionFunction1DGeneral2Spins}
+		Z = \sum_{s_1, s_2} e^{-\beta H(s_1, s_2)} = \mathrm{Tr}(P \cdot P)
+	\end{equation}
+	Here $\mathrm{Tr}$ denotes the trace of a matrix.
+
+	One can easily verify the above result by expanding the matrix product, 
+	but may be curious about why we need such a matrix $P$.
+	Actually, the matrix $P$ indicates the "connection" between the two spins.
+
+	Suppose that the first row and column of $P$ represent a state $s = +1$, 
+	while the second row and column represent another state $s = -1$.
+	We can write down the elements of $P$ as
+	\begin{equation} \label{eq:MatrixPElements}
+		P_{+,+} = e^{\beta(J+h)}, \quad P_{+,-} = P_{-,+} = e^{-\beta J}, \quad P_{-,-} = e^{\beta(J-h)}
+	\end{equation}
+
+	The contribution of the connection between two spins to the partition function is
+	\begin{equation} \label{eq:PartitionFunction1DGeneral2SpinsConnection}
+		P_{s_1, s_2} = e^{\beta(J s_1 s_2 + \frac12h(s_1 + s_2))}
+	\end{equation}
+	The factor $\frac12$ here is because each spin will be counted twice in two connections it has.
+
+	We can write down the partition function of such a system with $2$ spins as
+	\begin{equation} \label{eq:PartitionFunction1DGeneral2SpinsConnectionSum}
+		\begin{aligned}
+		Z &= \sum_{s_1, s_2} e^{-\beta H(s_1, s_2)} = \sum_{s_1, s_2} e^{\beta(2J s_1 s_2 + h(s_1 + s_2))} \\
+		&= \sum_{s_1, s_2} e^{\beta(J s_1 s_2 + \frac12h(s_1 + s_2))} \cdot e^{\beta(J s_1 s_2 + \frac12h(s_1 + s_2))} \\
+		&= \sum_{s_1, s_2} P_{s_1, s_2} \cdot P_{s_2, s_1} \\
+		&= \mathrm{Tr}(P \cdot P)
+		\end{aligned}
+	\end{equation}
+
+	It's easy to generalize the result to a system with $N$ spins.
+	\begin{equation} \label{eq:PartitionFunction1DGeneral}
+		\begin{aligned}
+			Z &= \sum_{\{s_i\}} e^{-\beta H(\{s_i\})} = \sum_{\{s_i\}} \prod_{i=1}^{N} e^{\beta(J s_i s_{i+1} + \frac12h(s_i + s_{i+1}))} \\
+			&= \sum_{\{s_i\}} \prod_{i=1}^{N} P_{s_i, s_{i+1}} = \mathrm{Tr}(P^N) \\
+		\end{aligned}
+	\end{equation}
+
+	Now our task is simplified into calculating the trace of the $N$-th power of a $2 \times 2$ matrix $P$.
+	Mathematicians have already solved this problem by diagonalizing the matrix
+	\begin{equation} \label{eq:MatrixPDiagonal}
+		P = U \cdot D \cdot U^\dagger
+	\end{equation}
+	Here $U$ is a unitary matrix, which means $U^\dagger U = I$, and $D$ is a diagonal matrix.
+	It has been proven that such diagonalization is always possible for a Hermitian matrix like $P$.
+
+	Then the $N$-th power of $P$ is
+	\begin{equation} \label{eq:MatrixPN}
+		P^N = U \cdot D^N \cdot U^\dagger
+	\end{equation}
+
+	We only care about the trace of $P^N$
+	\begin{equation} \label{eq:MatrixPNTrace}
+		\begin{aligned}
+			\mathrm{Tr}(P^N) &= \mathrm{Tr}(U \cdot D^N \cdot U^\dagger) \\
+			&= \mathrm{Tr}((U \cdot D^N) \cdot U^\dagger) = \mathrm{Tr}(U^\dagger \cdot (U \cdot D^N)) \\
+			&= \mathrm{Tr}(D^N)
+		\end{aligned}
+	\end{equation}
+
+	For a diagonal matrix $D = \mathrm{diag}(\lambda_+, \lambda_-)$, 
+	its $N$-th power is also a diagonal matrix $D^N = \mathrm{diag}(\lambda_+^N, \lambda_-^N)$.
+	Thus, we have
+	\begin{equation} \label{eq:MatrixPNTraceDiagonal}
+		\mathrm{Tr}(P^N) = \lambda_+^N + \lambda_-^N
+	\end{equation}
+
+	Now we only need to find $\lambda_\pm$, which are the eigenvalues of $P$.
+	I used Mathematica to calculate them, and the result is
+	\begin{equation} \label{eq:MatrixPEigenvalues}
+		\lambda_\pm = e^{\beta J} \left[\cosh(\beta h) \pm \sqrt{e^{-4\beta J}+\sinh^2(\beta h)}\right]
+	\end{equation}
+
+	Finally, we have the partition function of a 1D Ising model with $N$ spins
+	\begin{equation} \label{eq:PartitionFunction1DGeneralFinal}
+		\begin{aligned}
+			Z &= \mathrm{Tr}(P^N) = \lambda_+^N + \lambda_-^N \\
+			&= e^{N \beta J} \left\{\left[\cosh(\beta h) + \sqrt{e^{-4\beta J}+\sinh^2(\beta h)}\right]^N
+			 + \left[\cosh(\beta h) - \sqrt{e^{-4\beta J}+\sinh^2(\beta h)}\right]^N\right\}
+		\end{aligned}
+	\end{equation}
+
+	Now we can make some discussions over this equation.
+	\begin{itemize}
+		\item When $J = 0$, equation \eqref{eq:PartitionFunction1DGeneralFinal} reduces to equation \eqref{eq:PartitionFunctionNoInteraction},
+			which is the partition function of a system without interaction.
+		\item We didn't provide the derivation of equation \eqref{eq:PartitionFunction1DNoFieldPeriodic} in section 2.2,
+			but now it can be obtained by setting $h = 0$ in equation \eqref{eq:PartitionFunction1DGeneralFinal}.
+		\item In the limit $N \to \infty$, we have $\lambda_+^N \gg \lambda_-^N$, and the partition function becomes
+			\begin{equation} \label{eq:PartitionFunction1DGeneralLimit}
+				Z \approx \lambda_+^N = e^{N \beta J} \left[\cosh(\beta h) + \sqrt{e^{-4\beta J}+\sinh^2(\beta h)}\right]^N
+			\end{equation}
+		It will be much easier for us to calculate energy $E$, heat capacity $C_V$, magnetisation $M$, 
+		and other thermodynamic properties under such approximation.
+	\end{itemize}
+
+	\subsection{2D Ising Model}
 
 	\section{Implementation}
 	
