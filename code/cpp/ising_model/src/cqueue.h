@@ -1,26 +1,25 @@
-#include <memory>
+#include <vector>
 
 /// @brief A circular queue class.
 /// 
 /// Wraps around and overwrites oldest data when the queue is full.
-/// @tparam _Type Storage type.
-template <typename _Type>
+/// @tparam TYPE Storage type.
+template <typename TYPE>
 class cqueue
 {
 public:
-	//Finish writing
 	cqueue()
 	{
 	}
 
 	cqueue(std::size_t initialSize)
 	{
-		_queue = std::vector<_Type>(initialSize);
+		_queue = std::vector<TYPE>(initialSize);
 	}
 
-	cqueue(std::size_t initialSize, const _Type& defaultVal)
+	cqueue(std::size_t initialSize, const TYPE& defaultVal)
 	{
-		_queue = std::vector<_Type>(initialSize, defaultVal);
+		_queue = std::vector<TYPE>(initialSize, defaultVal);
 	}
 
 	void resize(std::size_t size)
@@ -33,7 +32,7 @@ public:
 		return _front == _back;
 	}
 
-	void push_back(const _Type& item)
+	void push_back(const TYPE& item)
 	{
 		//Add value
 		_queue[_back] = item;
@@ -57,19 +56,19 @@ public:
 	/// @brief Retrieves the item at the back of the queue
 	/// @param offset An offset from the back position
 	/// @return The item.
-	_Type back(std::size_t offset = 0) const
+	TYPE back(std::size_t offset = 0) const
 	{
 		std::size_t index;
 
 		//Out of range
-		if (_back == _front || (_back > _front && _back - _front >= offset) || (_back < _front && capacity() + _back - _front >= offset))
+		if (_back == _front || (_back > _front && (_back - _front) < offset) || (_back < _front && (capacity() + _back - _front) < offset))
 		{
-			//Raise exception
+			throw std::out_of_range("The offset value was out of range");
 			return _queue[0];
 		}
 		else 
 		{
-			if (_back - offset <= 0)
+			if (_back <= offset)
 				index = capacity() - 1 - offset;
 			else
 				index = _back - 1 - offset;
@@ -103,7 +102,7 @@ private:
 		return _queue.size();
 	}
 
-	std::vector<_Type> _queue;
+	std::vector<TYPE> _queue;
 	std::size_t _front = 0;
 	std::size_t _back = 0;
 };

@@ -35,15 +35,27 @@ void SpinGrid::SetGrid(const std::vector<int8_t>& grid)
 NeighbourList SpinGrid::GetNearestNeighbours(std::size_t x, std::size_t y) const
 {
 	NeighbourList neighbours;
-
+	
+	//Periodic boundary condition
 	if (x > 0)
 		neighbours.push_back({ x - 1, y });
+	else
+		neighbours.push_back({ _xSize - 1, y });
+
 	if (x < _xSize - 1)
 		neighbours.push_back({ x + 1, y });
+	else
+		neighbours.push_back({ 0, y });
+
 	if (y > 0)
 		neighbours.push_back({ x, y - 1 });
+	else
+		neighbours.push_back({ x, _ySize - 1 });
+
 	if (y < _ySize - 1)
 		neighbours.push_back({ x, y + 1 });
+	else
+		neighbours.push_back({ x, 0 });
 
 	return neighbours;
 }

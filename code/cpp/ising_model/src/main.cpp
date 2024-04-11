@@ -9,21 +9,20 @@
 #include <ShObjIdl_core.h>
 
 //#define _DEBUG
-#define THREADED
+//#define THREADED
 
-using wstring = std::basic_string<wchar_t>;
+typedef std::basic_string<wchar_t> wstring;
+typedef int Int;
+typedef unsigned int UInt;
 
 //Constants
-constexpr int GRID_SIZE = 1000;          //Size of grid to generate
-constexpr int TEMP_COUNT = 240;           //Number of temperature readings to take
-constexpr double TEMP_MIN = 0.0001;     //Minimum value for kBT
+constexpr Int GRID_SIZE = 100;          //Size of grid to generate
+constexpr Int TEMP_COUNT = 100;         //Number of temperature readings to take
+constexpr double TEMP_MIN = 1e-6;				//Minimum value for kBT
 constexpr double TEMP_MAX = 4.0;        //Maximum value for kBT
-constexpr int MAX_ITER_COUNT = 1e9;    //Maximum iterations to run for each temperature
-constexpr int ITER_AVG = 1e6;           //Saved energy is averaged over the last n iterations
-constexpr int AVG_STEP = 1e4;
-constexpr int GRAD_AVG = 5;             //Points to average over for the gradient calculation (heat capacity)
-//constexpr double TOLERANCE = 1e-3;
-//const double MAX_ENERGY = GRID_SIZE * GRID_SIZE * 2.0;
+constexpr Int MAX_ITER_COUNT = 1e9;    //Maximum iterations to run for each temperature
+constexpr Int ITER_AVG = 1e2;           //Saved energy is averaged over the last n iterations
+constexpr Int GRAD_AVG = 5;             //Points to average over for the gradient calculation (heat capacity)
 
 struct EnergyValue // Does this need a new name because of adding magnetisation?
 {
@@ -90,26 +89,44 @@ void GenRandomSpins(std::vector<int8_t>& spins, uint64_t seed)
 
 		constexpr int8_t spinStates[2] = {1, -1};
 
-		for (int x = 0; x < GRID_SIZE; ++x)
+		for (Int x = 0; x < GRID_SIZE; ++x)
 		{
-				for (int y = 0; y < GRID_SIZE; ++y)
+				for (Int y = 0; y < GRID_SIZE; ++y)
 				{
 						spins[x * GRID_SIZE + y] = spinStates[rnd.GetRandInt(0, 2)];
 				}
 		}
 }
 
-double CalculateAverageGradient(const cqueue<double>& buffer)
+double sqr(double x)
 {
-	//1) Check if average gradient is very small -> terminate
-	//2) Check if there is a significant pattern in gradients (all in same direction? mostly)
-	//3) If not then test over a larger interval and go back to (1)
-	//4) If no interval has a consistent gradient (after large iterations) -> terminate
-
-	//May work??
+	return x * x;
 }
 
-void EnergyThread(SpinGrid& grid, int tempNum, std::vector<EnergyValue>& energyValues, const std::vector<int8_t>& initialSpins)
+/// @brief Calculates the mean and standard deviation from the values in a queue.
+/// @param buffer 
+/// @param mean 
+/// @param stdDevSq 
+void CalculateMeanStdDev(const cqueue<double>& buffer, double& mean, double& stdDevSq)
+{
+	mean = 0.0;
+	double meanSq = 0.0;
+
+	double buffVal;
+	for (std::size_t i = 0; i < buffer.size(); ++i)
+	{
+		buffVal = buffer.back(i);
+		mean += buffVal;
+		meanSq += sqr(buffVal);
+	}
+
+	mean /= buffer.size();
+	meanSq /= buffer.size();
+			
+	stdDevSq = sqrt(meanSq - sqr(mean));
+}
+
+void EnergyThread(SpinGrid& grid, Int tempNum, std::vector<EnergyValue>& energyValues, const std::vector<int8_t>& initialSpins)
 {
 	double tempValue;
 	int64_t startTime, endTime;
@@ -124,39 +141,42 @@ void EnergyThread(SpinGrid& grid, int tempNum, std::vector<EnergyValue>& energyV
 	grid.SetGrid(initialSpins);
 
 	//Buffer for calculating mean energy
-	const int buffSize = ITER_AVG / AVG_STEP;
+	const Int buffSize = ITER_AVG;
 
 	cqueue<double> buff(buffSize);
-	double lastEnergy = 0.0;
+	double lastMean = 0.0;
+	double lastStdDev = 0.0; //Square std dev avoids need for sqrt
 
 	//Iterations
-	for (int i = 0; i < MAX_ITER_COUNT; ++i)
+	for (Int i = 0; i < MAX_ITER_COUNT; ++i)
 	{
 		grid.Iterate();
+		buff.push_back(grid.GetTotalEnergy());
 
-		if (i % AVG_STEP == 0)
-				buff.push_back(grid.GetTotalEnergy());
-
-		/*//Check terminating case
+		//Check termination case
 		if (i % ITER_AVG == 0)
 		{
-			double averageGrad = CalculateAverageGradient(buff);
+			double mean, stdDev;
+			CalculateMeanStdDev(buff, mean, stdDev);
 
-			std::cout << "Energy Change: " + std::to_string(abs(lastEnergy - currentAvg)) + " Tol: " + std::to_string(TOLERANCE * MAX_ENERGY) + "\n";
-
-			//Check if average value has changed by enough to be counted
-			if (abs(averageGrad) < TOLERANCE * MAX_ENERGY)
+			if (i > 0)
 			{
-				std::cout << "Early exit\n"; //Output graph of energy against iterations to check out the stopping condition
-				break; //Try running a lot more iterations (for small number of temperature points) see if it changes the graph significantly
-				//RUn for different sized grids and compare. Leave running a long time when sure it's got a good stopping condition.
+				const double devLimit = (lastStdDev / sqrt(ITER_AVG));
+				if (abs(lastMean - mean) <= devLimit)
+				{
+					std::cout << "Exit early, " + std::to_string(i) + " iterations\n";
+					break;
+				}
 			}
-		}*/
+			
+			lastMean = mean;
+			lastStdDev = stdDev;
+		}
 	}
 
 	//Calculate mean
 	double meanEnergy = 0.0;
-	int count = 0;
+	Int count = 0;
 	while (!buff.empty())
 	{
 		meanEnergy += buff.back();
@@ -171,8 +191,8 @@ void EnergyThread(SpinGrid& grid, int tempNum, std::vector<EnergyValue>& energyV
 	endTime = clock.time_since_epoch() / std::chrono::microseconds(1);
 
 	double timeTaken = (endTime - startTime) / 1000000.0;
-	std::string printStr = "Temperature: " + std::to_string(tempValue) + ", Time Taken: " + std::to_string(timeTaken) + "\n";
-	std::cout << printStr;
+	std::string prIntStr = "Temperature: " + std::to_string(tempValue) + ", Time Taken: " + std::to_string(timeTaken) + "\n";
+	std::cout << prIntStr;
 }
 
 void CalculateEnergyValues(uint64_t seed, const std::vector<int8_t>& initialSpins, std::vector<EnergyValue>& energies)
@@ -181,25 +201,25 @@ void CalculateEnergyValues(uint64_t seed, const std::vector<int8_t>& initialSpin
 	int64_t startTime = clock.time_since_epoch() / std::chrono::microseconds(1);
 
 #ifdef THREADED
-	const unsigned int threadCount = std::thread::hardware_concurrency();
+	const UInt threadCount = std::thread::hardware_concurrency();
 
 	//Initialise SpinGrid instance for each thread
 	std::vector<SpinGrid> gridArray;
 	gridArray.reserve(threadCount);
 
-	for (unsigned int i = 0; i < threadCount; ++i)
+	for (UInt i = 0; i < threadCount; ++i)
 		gridArray.push_back(SpinGrid(GRID_SIZE, GRID_SIZE, seed + (i+1)));
 
 	//Split temps by thread num
-	const int perThread = (int)std::ceil(double(TEMP_COUNT) / threadCount);
+	const Int perThread = (Int)std::ceil(double(TEMP_COUNT) / threadCount);
 
 	//Start threading
 	std::vector<std::thread> threads(threadCount);
-	int tempNum;
+	Int tempNum;
 
-	for (int i = 0; i < perThread; ++i)
+	for (Int i = 0; i < perThread; ++i)
 	{
-		for (unsigned int threadIndex = 0; threadIndex < threadCount; ++threadIndex)
+		for (UInt threadIndex = 0; threadIndex < threadCount; ++threadIndex)
 		{
 			//Wait for previous execution to finish
 			if (threads[threadIndex].joinable())
@@ -224,7 +244,7 @@ void CalculateEnergyValues(uint64_t seed, const std::vector<int8_t>& initialSpin
 
 #ifndef THREADED
 	SpinGrid grid(GRID_SIZE, GRID_SIZE, seed + 1);
-	for (int i = 0; i < TEMP_COUNT; ++i)
+	for (Int i = 0; i < TEMP_COUNT; ++i)
 	{
 		EnergyThread(grid, i, energies, initialSpins);
 	}
@@ -237,20 +257,20 @@ void CalculateEnergyValues(uint64_t seed, const std::vector<int8_t>& initialSpin
 
 void WriteEnergiesToFile(const std::vector<EnergyValue>& energies, const wstring& dest)
 {
-		if (dest == L"")
-				return;
+	if (dest == L"")
+			return;
 
-		std::ofstream fileStream;
-		fileStream.open(dest);
+	std::ofstream fileStream;
+	fileStream.open(dest);
 
-		fileStream << "temp,energy\n";
+	fileStream << "temp,energy\n";
 
-		for (const EnergyValue& energyDat : energies)
-		{
-				fileStream << (std::to_string(energyDat.temp) + "," + std::to_string(energyDat.energy) + "\n");
-		}
+	for (const EnergyValue& energyDat : energies)
+	{
+		fileStream << (std::to_string(energyDat.temp) + "," + std::to_string(energyDat.energy) + "\n");
+	}
 
-		fileStream.close();
+	fileStream.close();
 }
 
 void WriteHeatCapToFile(const std::vector<EnergyValue>& energies, const wstring& dest)
@@ -263,18 +283,18 @@ void WriteHeatCapToFile(const std::vector<EnergyValue>& energies, const wstring&
 	double gradient = 0.0;
 	int8_t count = 0;
 
-	for (int energyIndex = 0; energyIndex < energies.size(); ++energyIndex)
+	for (Int energyIndex = 0; energyIndex < energies.size(); ++energyIndex)
 	{
 		gradient = 0.0;
 		count = 0;
 
 		//Take average either side
-		for (int i = energyIndex - 1; i > max(0, energyIndex - GRAD_AVG / 2); --i)
+		for (Int i = energyIndex - 1; i > max(0, energyIndex - GRAD_AVG / 2); --i)
 		{
 			gradient += (energies[i + 1].energy - energies[i].energy) / (energies[i + 1].temp - energies[i].temp);
 			++count;
 		}
-		for (int i = energyIndex + 1; i < min(energies.size(), energyIndex + GRAD_AVG / 2); ++i)
+		for (Int i = energyIndex + 1; i < min(energies.size(), energyIndex + GRAD_AVG / 2); ++i)
 		{
 			gradient += (energies[i].energy - energies[i - 1].energy) / (energies[i].temp - energies[i - 1].temp);
 			++count;
@@ -290,7 +310,7 @@ void WriteHeatCapToFile(const std::vector<EnergyValue>& energies, const wstring&
 
 	fileStream << "temp,heat-cap\n";
 
-	for (int energyIndex = 0; energyIndex < energies.size(); ++energyIndex)
+	for (Int energyIndex = 0; energyIndex < energies.size(); ++energyIndex)
 	{
 		fileStream << (std::to_string(energies[energyIndex].temp) + "," + std::to_string(heatCapacities[energyIndex]) + "\n");
 	}
@@ -298,7 +318,7 @@ void WriteHeatCapToFile(const std::vector<EnergyValue>& energies, const wstring&
 	fileStream.close();
 }
 
-void writeMagnetisationToFile(const std::vector<EnergyValue>& energies, const wstring& dest)
+void WriteMagnetisationToFile(const std::vector<EnergyValue>& energies, const wstring& dest)
 {
   if (dest == L"")
 	return;
@@ -309,7 +329,7 @@ void writeMagnetisationToFile(const std::vector<EnergyValue>& energies, const ws
 
   fileStream << "temp,magnetisation\n";
 
-  for (int energyIndex = 0; energyIndex < energies.size(); ++energyIndex)
+  for (Int energyIndex = 0; energyIndex < energies.size(); ++energyIndex)
   {
 	fileStream << (std::to_string(energies[energyIndex].temp) + "," + std::to_string(energies[energyIndex].magnetisation) + "\n");
   }
@@ -317,7 +337,7 @@ void writeMagnetisationToFile(const std::vector<EnergyValue>& energies, const ws
   fileStream.close();
 }
 
-int main(int argc, char* argv[])
+Int main(Int argc, char* argv[])
 {
   //Initialisation required for using windows API
   HRESULT res = CoInitialize(NULL);
@@ -342,7 +362,7 @@ int main(int argc, char* argv[])
   //Write to CSV files
   WriteEnergiesToFile(energies, energyCsvFile);
   WriteHeatCapToFile(energies, heatCsvFile);
-  writeMagnetisationToFile(energies, magnetisationCsvFile);
+  WriteMagnetisationToFile(energies, magnetisationCsvFile);
 
   return 0;
 }
