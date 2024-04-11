@@ -9,74 +9,83 @@
 #include <ShObjIdl_core.h>
 
 //#define _DEBUG
-//#define THREADED
+#define THREADED
 
 typedef std::basic_string<wchar_t> wstring;
 typedef int Int;
 typedef unsigned int UInt;
 
 //Constants
-constexpr Int GRID_SIZE = 100;          //Size of grid to generate
-constexpr Int TEMP_COUNT = 100;         //Number of temperature readings to take
-constexpr double TEMP_MIN = 1e-6;				//Minimum value for kBT
-constexpr double TEMP_MAX = 4.0;        //Maximum value for kBT
-constexpr Int MAX_ITER_COUNT = 1e9;    //Maximum iterations to run for each temperature
-constexpr Int ITER_AVG = 1e2;           //Saved energy is averaged over the last n iterations
-constexpr Int GRAD_AVG = 5;             //Points to average over for the gradient calculation (heat capacity)
+constexpr Int GRID_SIZE = 200;				//Size of grid to generate
+constexpr Int TEMP_COUNT = 100;				//Number of temperature readings to take
+constexpr double TEMP_MIN = 1e-6;			//Minimum value for kBT
+constexpr double TEMP_MAX = 4.0;			//Maximum value for kBT
+constexpr Int MAX_ITER_COUNT = 1e9;		//Maximum iterations to run for each temperature
+constexpr Int ITER_AVG = 1e6;					//Saved energy is averaged over the last n iterations
+constexpr Int GRAD_AVG = 10;          //Points to average over for the gradient calculation (heat capacity)
 
-struct EnergyValue // Does this need a new name because of adding magnetisation?
+struct ModelData
 {
-    double temp = 0.0;
-    double energy = 0.0;
-    double magnetisation = 0.0;
+  double temp = 0.0;
+  double energy = 0.0;
+  double magnetisation = 0.0;
+
+	/// @brief Default constructor
+	ModelData()
+	{
+	}
+
+	ModelData(double temp_, double energy_, double magnetisation_) : temp(temp_), energy(energy_), magnetisation(magnetisation_)
+	{
+	}
 };
 
 /// @brief Allows the user to pick a destination for a CSV file.
 /// @return The chosen file name.
 wstring FileSave(wstring title)
 {
-		COMDLG_FILTERSPEC ComDlgFS[2] =
-		{
-			{L"CSV file", L"*.csv"},
-			{L"All Files",L"*.*"}
-		};
+	COMDLG_FILTERSPEC ComDlgFS[2] =
+	{
+		{L"CSV file", L"*.csv"},
+		{L"All Files",L"*.*"}
+	};
 		
-		wstring saveFilename = L"";
+	wstring saveFilename = L"";
 
-		IFileSaveDialog* saveDlg = nullptr;
-		IShellItem* shellItem = nullptr;
+	IFileSaveDialog* saveDlg = nullptr;
+	IShellItem* shellItem = nullptr;
 
-		HRESULT hr = CoCreateInstance(CLSID_FileSaveDialog, NULL, CLSCTX_INPROC_SERVER, IID_IFileSaveDialog, (void**)(&saveDlg));
+	HRESULT hr = CoCreateInstance(CLSID_FileSaveDialog, NULL, CLSCTX_INPROC_SERVER, IID_IFileSaveDialog, (void**)(&saveDlg));
+	if (SUCCEEDED(hr))
+	{
+		hr = saveDlg->SetFileTypes(2, ComDlgFS);
 		if (SUCCEEDED(hr))
 		{
-				hr = saveDlg->SetFileTypes(2, ComDlgFS);
-				if (SUCCEEDED(hr))
-				{
-						saveDlg->SetTitle(title.begin()._Ptr);
-						saveDlg->Show(0);
+			saveDlg->SetTitle(title.begin()._Ptr);
+			saveDlg->Show(0);
 
-						saveDlg->GetResult(&shellItem);
-						if (shellItem == nullptr)
-								return L"";
+			saveDlg->GetResult(&shellItem);
+			if (shellItem == nullptr)
+				return L"";
 
-						wchar_t* filename = nullptr;
-						shellItem->GetDisplayName(SIGDN_FILESYSPATH, &filename);
-						if (filename != nullptr)
-						{
-								saveFilename = filename;
-								CoTaskMemFree(filename);
-						}
+			wchar_t* filename = nullptr;
+			shellItem->GetDisplayName(SIGDN_FILESYSPATH, &filename);
+			if (filename != nullptr)
+			{
+				saveFilename = filename;
+				CoTaskMemFree(filename);
+			}
 
-						shellItem->Release();
-				}
-				saveDlg->Release();
+			shellItem->Release();
 		}
+		saveDlg->Release();
+	}
 
-		//Check file extension
-		if (saveFilename.substr(saveFilename.size() - 4) != L".csv")
-				saveFilename += L".csv";
+	//Check file extension
+	if (saveFilename.substr(saveFilename.size() - 4) != L".csv")
+			saveFilename += L".csv";
 
-		return saveFilename;
+	return saveFilename;
 }
 
 /// @brief Build a grid of random spin states
@@ -84,18 +93,18 @@ wstring FileSave(wstring title)
 /// @param seed 
 void GenRandomSpins(std::vector<int8_t>& spins, uint64_t seed)
 {
-		Random64 rnd;
-		rnd.Init(seed);
+	Random64 rnd;
+	rnd.Init(seed);
 
-		constexpr int8_t spinStates[2] = {1, -1};
+	constexpr int8_t spinStates[2] = {1, -1};
 
-		for (Int x = 0; x < GRID_SIZE; ++x)
+	for (Int x = 0; x < GRID_SIZE; ++x)
+	{
+		for (Int y = 0; y < GRID_SIZE; ++y)
 		{
-				for (Int y = 0; y < GRID_SIZE; ++y)
-				{
-						spins[x * GRID_SIZE + y] = spinStates[rnd.GetRandInt(0, 2)];
-				}
+			spins[x * GRID_SIZE + y] = 1; // spinStates[rnd.GetRandInt(0, 2)];
 		}
+	}
 }
 
 double sqr(double x)
@@ -126,7 +135,7 @@ void CalculateMeanStdDev(const cqueue<double>& buffer, double& mean, double& std
 	stdDevSq = sqrt(meanSq - sqr(mean));
 }
 
-void EnergyThread(SpinGrid& grid, Int tempNum, std::vector<EnergyValue>& energyValues, const std::vector<int8_t>& initialSpins)
+void EnergyThread(SpinGrid& grid, Int tempNum, std::vector<ModelData>& energyValues, const std::vector<int8_t>& initialSpins)
 {
 	double tempValue;
 	int64_t startTime, endTime;
@@ -143,7 +152,8 @@ void EnergyThread(SpinGrid& grid, Int tempNum, std::vector<EnergyValue>& energyV
 	//Buffer for calculating mean energy
 	const Int buffSize = ITER_AVG;
 
-	cqueue<double> buff(buffSize);
+	cqueue<double> energyBuff(buffSize); //energy
+	cqueue<int64_t> magnetisationBuff(buffSize);
 	double lastMean = 0.0;
 	double lastStdDev = 0.0; //Square std dev avoids need for sqrt
 
@@ -151,13 +161,14 @@ void EnergyThread(SpinGrid& grid, Int tempNum, std::vector<EnergyValue>& energyV
 	for (Int i = 0; i < MAX_ITER_COUNT; ++i)
 	{
 		grid.Iterate();
-		buff.push_back(grid.GetTotalEnergy());
+		energyBuff.push_back(grid.GetTotalEnergy());
+		magnetisationBuff.push_back(grid.GetMagnetisation());
 
 		//Check termination case
 		if (i % ITER_AVG == 0)
 		{
 			double mean, stdDev;
-			CalculateMeanStdDev(buff, mean, stdDev);
+			CalculateMeanStdDev(energyBuff, mean, stdDev);
 
 			if (i > 0)
 			{
@@ -177,15 +188,27 @@ void EnergyThread(SpinGrid& grid, Int tempNum, std::vector<EnergyValue>& energyV
 	//Calculate mean
 	double meanEnergy = 0.0;
 	Int count = 0;
-	while (!buff.empty())
+	while (!energyBuff.empty())
 	{
-		meanEnergy += buff.back();
-		buff.pop_back();
+		meanEnergy += energyBuff.back();
+		energyBuff.pop_back();
 		++count;
 	}
 
 	meanEnergy /= count;
-	energyValues[tempNum] = EnergyValue({ tempValue, meanEnergy, grid.GetMagnetisation() });
+
+	double meanMagnetisation = 0.0;
+	count = 0;
+	while (!magnetisationBuff.empty())
+	{
+		meanMagnetisation += magnetisationBuff.back();
+		magnetisationBuff.pop_back();
+		++count;
+	}
+
+	meanMagnetisation /= count;
+	
+	energyValues[tempNum] = ModelData(tempValue, meanEnergy, meanMagnetisation);
 
 	clock = std::chrono::system_clock::now();
 	endTime = clock.time_since_epoch() / std::chrono::microseconds(1);
@@ -195,7 +218,7 @@ void EnergyThread(SpinGrid& grid, Int tempNum, std::vector<EnergyValue>& energyV
 	std::cout << prIntStr;
 }
 
-void CalculateEnergyValues(uint64_t seed, const std::vector<int8_t>& initialSpins, std::vector<EnergyValue>& energies)
+void CalculateEnergyValues(uint64_t seed, const std::vector<int8_t>& initialSpins, std::vector<ModelData>& energies)
 {
 	auto clock = std::chrono::system_clock::now();
 	int64_t startTime = clock.time_since_epoch() / std::chrono::microseconds(1);
@@ -255,17 +278,17 @@ void CalculateEnergyValues(uint64_t seed, const std::vector<int8_t>& initialSpin
 	std::cout << "Total Time: " + std::to_string((endTime - startTime) / 1000000.0) + " s\n";
 }
 
-void WriteEnergiesToFile(const std::vector<EnergyValue>& energies, const wstring& dest)
+void WriteEnergiesToFile(const std::vector<ModelData>& energies, const wstring& dest)
 {
 	if (dest == L"")
-			return;
+		return;
 
 	std::ofstream fileStream;
 	fileStream.open(dest);
 
 	fileStream << "temp,energy\n";
 
-	for (const EnergyValue& energyDat : energies)
+	for (const ModelData& energyDat : energies)
 	{
 		fileStream << (std::to_string(energyDat.temp) + "," + std::to_string(energyDat.energy) + "\n");
 	}
@@ -273,7 +296,7 @@ void WriteEnergiesToFile(const std::vector<EnergyValue>& energies, const wstring
 	fileStream.close();
 }
 
-void WriteHeatCapToFile(const std::vector<EnergyValue>& energies, const wstring& dest)
+void WriteHeatCapToFile(const std::vector<ModelData>& energies, const wstring& dest)
 {
 	if (dest == L"")
 		return;
@@ -318,10 +341,10 @@ void WriteHeatCapToFile(const std::vector<EnergyValue>& energies, const wstring&
 	fileStream.close();
 }
 
-void WriteMagnetisationToFile(const std::vector<EnergyValue>& energies, const wstring& dest)
+void WriteMagnetisationToFile(const std::vector<ModelData>& energies, const wstring& dest)
 {
   if (dest == L"")
-	return;
+		return;
 
   //Write to file
   std::ofstream fileStream;
@@ -331,18 +354,18 @@ void WriteMagnetisationToFile(const std::vector<EnergyValue>& energies, const ws
 
   for (Int energyIndex = 0; energyIndex < energies.size(); ++energyIndex)
   {
-	fileStream << (std::to_string(energies[energyIndex].temp) + "," + std::to_string(energies[energyIndex].magnetisation) + "\n");
+		fileStream << (std::to_string(energies[energyIndex].temp) + "," + std::to_string(energies[energyIndex].magnetisation) + "\n");
   }
 
   fileStream.close();
 }
 
-Int main(Int argc, char* argv[])
+int main(int argc, char* argv[])
 {
   //Initialisation required for using windows API
   HRESULT res = CoInitialize(NULL);
   if (!SUCCEEDED(res))
-      return 0;
+		return 0;
 
   //Get file names
   const wstring energyCsvFile = FileSave(L"Choose energy CSV file");
@@ -356,7 +379,7 @@ Int main(Int argc, char* argv[])
   GenRandomSpins(randomSpins, seed + 1);
     
   //Main execution
-  std::vector<EnergyValue> energies(TEMP_COUNT);
+  std::vector<ModelData> energies(TEMP_COUNT);
   CalculateEnergyValues(seed, randomSpins, energies);
 
   //Write to CSV files

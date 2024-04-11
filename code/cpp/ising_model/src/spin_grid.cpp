@@ -85,24 +85,27 @@ void SpinGrid::CalculateTotalEnergy()
 	_totalEnergy /= 2; //Double counted pairs
 }
 
-double SpinGrid::GetTotalEnergy() const
+void SpinGrid::CalculateMagnetisation()
 {
-	return _totalEnergy;
-}
-
-double SpinGrid::GetMagnetisation() const
-{
-	double magnetisation = 0.0;
+	_totalMagnetisation = 0;
 
 	for (std::size_t x = 0; x < _xSize; ++x)
 	{
 		for (std::size_t y = 0; y < _ySize; ++y)
 		{
-			magnetisation += GetSpin(x, y);
+			_totalMagnetisation += GetSpin(x, y);
 		}
 	}
+}
 
-	return magnetisation;
+double SpinGrid::GetTotalEnergy() const
+{
+	return _totalEnergy;
+}
+
+int64_t SpinGrid::GetMagnetisation() const
+{
+	return _totalMagnetisation;
 }
 
 /// @brief Performs one iteration to try and change a random spin in the grid.
@@ -127,6 +130,7 @@ void SpinGrid::Iterate()
 	{
 		SetSpin(x, y, newSpin);
 		_totalEnergy += energyChange;
+		_totalMagnetisation += 2 * newSpin;
 
 #ifdef _DEBUG
 		double cacheEnergy = _totalEnergy;
