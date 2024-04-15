@@ -6,13 +6,21 @@
 \usepackage{amssymb}
 \usepackage{amsthm}
 \usepackage{datetime}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{hyperref}
+\bibliographystyle{ieeetr}
+
+\newcommand{\vd}{\mathrm{d}} %Vertical d (for derivatives)
 
 \begin{document}
 	\pagenumbering{arabic}
 	
 	\begin{titlepage}
 		\begin{center}
-			{\Huge Monte Carlo Simulation of Phase Transitions}\\[0.5cm]
+			{\Huge Monte Carlo Simulations of The Ising Model}\\[0.5cm]
 			\textit{Haodong Chang and Tavis O'Reilly}\\[0.3cm]
 			\textit{11505303 and 10903943}\\[0.3cm]
 			Department of Physics and Astronomy\\[0.3cm]
@@ -23,7 +31,9 @@
 		\end{center}
 		
 		{\Large \textbf{Abstract}}\\[0.3cm]
+		The goal of this project was to use a Metropolis-Hastings algorithm, a type of Markov chain Monte Carlo method, to simulate the Ising model for ferromagnetism. In two dimensions, an exact analytic solution exists\cite{onsager_solution} that shows a phase transition at the critical temperature $T_c$. We wrote a computer simulation that implements a Metropolis-Hastings algorithm to find the average energy, heat capacity and magnetisation as a function of temperature. \\
 		
+		How our results it fits with the predictions of the model
 		
 	\end{titlepage}
 	
@@ -36,12 +46,13 @@
 	
 	\section{Introduction}
 	
-	Brief introduction to the problem.
-
-	Our discussion over phase transitions will be based on the Ising model, 
-	which is a one of the few models that can be solved analytically in two dimensions.
-
-	% (To be added: definition of phase transitions, the importance of the Ising model, etc.)
+	The Ising model is a simple model of ferromagnetism, consisting of a grid of atomic spins that can either be "up" or "down". These spins only interact with their nearest neighbours, and with any external magnetic field. The Ising model can be difficult to solve analytically so numerical methods can be favourable to obtain solutions instead. \\
+	
+	Expand further:
+	\begin{itemize}
+		\item Relevance/uses?
+		\item Briefly explain temperature and energy in the model.
+	\end{itemize}
 	
 	\section{Theory}
 
@@ -138,7 +149,7 @@
 		H(s_1, \{p_i\}) = -J \sum_{i=1}^{N-1} p_i
 	\end{equation}
 
-	Applying the result of equation \eqref{eq:PartitionFunctionNoInteraction}, we have the partition function
+	Applying the result of equation \ref{eq:PartitionFunctionNoInteraction}, we have the partition function
 	\begin{equation} \label{eq:PartitionFunction1DNoField}
 		\begin{aligned}
 			Z &= \sum_{s_1, \{p_i\}} e^{-\beta H(s_1, \{p_i\})} \\
@@ -279,18 +290,89 @@
 	\end{itemize}
 
 	\subsection{2D Ising Model}
-
+	
+	\subsubsection*{Onsager's Solution}
+	
+	Source\cite{onsager_solution}
+	
+	\begin{equation}
+		\begin{split}
+			Z &= \lambda^N \\
+			\ln{\lambda} &= \ln{\left(2 \cosh{2\beta J}\right)} + \frac{1}{\pi}\int_0^{\frac{\pi}{2}} \ln{\left[\frac{1}{2}\left(1 + \sqrt{1 - K^2\sin^2{w}}\right)\right]\;\vd w} \\
+			K &= \frac{2\sinh{2\beta J}}{\left(\cosh{2\beta J}\right)^2}
+		\end{split}
+	\end{equation}
+	
+	Energy:
+	\begin{equation}
+		\begin{split}
+			E &= - \frac{\partial \ln{Z}}{\partial \beta} = -N\frac{\partial \ln{\lambda}}{\partial \beta}
+		\end{split}
+	\end{equation}
+	
 	\section{Implementation}
 	
-	Brief description of how the model was built into the code and how data was obtained from this.
+	The first step was to create a grid of spins. We opted to have the spins randomly distributed but with a bias towards the "up" direction. This ensured the magnetisation, which is sensitive to initial conditions, approached the same average each time.\\
+	
+	The basic algorithm that is then used is:
+	\begin{enumerate}
+		\item Choose a spin at random from the grid.
+		\item Calculate the energy change $\Delta E$ if this spin were to flip.
+		\item If $\Delta E \leq 0$ flip the spin, otherwise flip the spin with probability $e^{-\beta\Delta E}$.
+		\item Repeat this process.
+	\end{enumerate}
+	
+	In our setup, the energy was calculated using a periodic boundary condition. Starting in two dimensions, we ran some initial tests of the model to observe the behaviour of the spins as the algorithm iterates, as shown in figure \ref{fig:ising_grid}.
+	\begin{figure}[H]
+		\begin{center}
+			\includegraphics[width=0.5\textwidth]{./img/ising-simulation.png}
+		\end{center}
+		\caption{A two-dimensional Ising Model simulation on a $500\times 500$ grid with parameters $J = 1.0$, $\beta = 1.0$ and $h = 0$.}
+		\label{fig:ising_grid}
+	\end{figure}
+	
+	In order to compare to the Onsager solution, we needed to run the same simulation for a number of different values of $\beta$. The simulation needs to be run for a sufficient number of iterations such that it reaches equilibrium. Our stopping condition was the following:
+	\begin{itemize}
+		\item For each block of $n$ iterations:
+		\begin{enumerate}
+			\item Calculate the mean of the current block.
+			\item Compare the change of the mean value from the current block to that of the previous block.
+			\item If the mean has changed by less than three times the standard deviation of the mean $\displaystyle\left(\frac{\sigma}{\sqrt{n}}\right)$, it is considered to be at equilibrium and the simulation stops.
+		\end{enumerate}
+		\item There is also a set maximum iterations $N_\text{max}$ to ensure the algorithm doesn't continue ad infinitum.
+	\end{itemize}
 	
 	\section{Results}
 	
-	The results obtained including some good plots. Compare to the theory.
+	After running the algorithm described above for a grid size of $1000 \times 1000$, for values of $k_B T$ between $0.0001$ and $4.0\;\mathrm{J}$, we obtained the data shown in figure [].
+	\begin{figure}[H]
+		\begin{center}
+			\begin{tikzpicture}
+				\begin{axis}[width=0.8\textwidth, height=0.5\textwidth, xlabel=$k_BT$, ylabel=$E/N$]
+					\addplot [mark size=0pt,blue] table[
+					col sep=comma,
+					x=temp,
+					y=energy]
+					{csv/onsager-energy.csv};
+					
+					\addplot [mark=*,mark size=0.5pt,black] table[
+					col sep=comma,
+					x=temp,
+					y=energy,
+					only marks]
+					{csv/energy-1000.csv};
+				\end{axis}
+			\end{tikzpicture}
+		\end{center}
+		\caption{A plot of the average energy per particle against $k_BT$. The blue line is the solution obtained from the Onsager solution, and the black points are the data calculated by our simulation.}
+	\end{figure}
 	
 	\section{Conclusion}
 	
 	Conclude results.
-
+	
+	\newpage
+	\bibliography{references} 
+	\bibliographystyle{ieeetr}
 
 \end{document}
