@@ -8,12 +8,13 @@ using NeighbourList = std::vector<std::pair<std::size_t, std::size_t>>;
 class SpinGrid
 {
 public:
-	SpinGrid(std::size_t xSize, std::size_t ySize, uint64_t seed, double interactionStrength = 1.0) : _xSize(xSize), _ySize(ySize), _interactionStrength(interactionStrength)
+	SpinGrid(std::size_t xSize, std::size_t ySize, uint64_t seed, double magneticField, double interactionStrength = 1.0) : _xSize(xSize), _ySize(ySize), _magneticField(magneticField), _interactionStrength(interactionStrength)
 	{
 		_spinGrid = std::vector<int8_t>(xSize * ySize);
 		_rnd.Init(seed);
 	}
 
+	void SetMagneticField(double fieldStrength);
 	void SetTemperature(double kBT);
 	void SetGrid(const std::vector<int8_t>& grid);
 	void SetSpin(std::size_t x, std::size_t y, int8_t spin);
@@ -39,5 +40,6 @@ private:
 
 	double _exps[2];
 	double _interactionStrength = 1.0;
+	double _magneticField = 0.0;
 	double _beta = 1.0;
 };

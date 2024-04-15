@@ -1,5 +1,10 @@
 #include "spin_grid.h"
 
+void SpinGrid::SetMagneticField(double fieldStrength)
+{
+	_magneticField = fieldStrength;
+}
+
 void SpinGrid::SetTemperature(double kBT)
 {
 	if (kBT > 0.0)
@@ -28,6 +33,7 @@ void SpinGrid::SetGrid(const std::vector<int8_t>& grid)
 	{
 		_spinGrid = grid;
 		CalculateTotalEnergy();
+		CalculateMagnetisation();
 	}
 }
 
@@ -67,7 +73,10 @@ double SpinGrid::CalculateEnergy(std::size_t x, std::size_t y) const
 	for (const auto& neighbour : GetNearestNeighbours(x, y))
 		energy += -spinValue * GetSpin(neighbour.first, neighbour.second);
 
-	return energy * _interactionStrength;
+	energy *= _interactionStrength;
+	energy += -_magneticField * spinValue;
+
+	return energy;
 }
 
 void SpinGrid::CalculateTotalEnergy()
@@ -122,8 +131,10 @@ void SpinGrid::Iterate()
 	double expValue;
 	if (energyChange == 4.0)
 		expValue = _exps[0];
-	else
+	else if (energyChange == 8.0)
 		expValue = _exps[1];
+	else
+		expValue = exp(-energyChange * _beta);
 
 	//Whether to flip spin
 	if (energyChange <= 0.0 || _rnd.Get01() <= expValue)

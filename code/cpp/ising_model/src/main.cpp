@@ -16,13 +16,14 @@ typedef int Int;
 typedef unsigned int UInt;
 
 //Constants
-constexpr Int GRID_SIZE = 200;				//Size of grid to generate
+constexpr Int GRID_SIZE = 1000;				//Size of grid to generate
 constexpr Int TEMP_COUNT = 100;				//Number of temperature readings to take
 constexpr double TEMP_MIN = 1e-6;			//Minimum value for kBT
 constexpr double TEMP_MAX = 4.0;			//Maximum value for kBT
 constexpr Int MAX_ITER_COUNT = 1e9;		//Maximum iterations to run for each temperature
 constexpr Int ITER_AVG = 1e6;					//Saved energy is averaged over the last n iterations
 constexpr Int GRAD_AVG = 10;          //Points to average over for the gradient calculation (heat capacity)
+constexpr double MAGNETIC_FIELD = 0.0; //Magnetic field strength
 
 struct ModelData
 {
@@ -231,7 +232,7 @@ void CalculateEnergyValues(uint64_t seed, const std::vector<int8_t>& initialSpin
 	gridArray.reserve(threadCount);
 
 	for (UInt i = 0; i < threadCount; ++i)
-		gridArray.push_back(SpinGrid(GRID_SIZE, GRID_SIZE, seed + (i+1)));
+		gridArray.push_back(SpinGrid(GRID_SIZE, GRID_SIZE, seed + (i+1), MAGNETIC_FIELD));
 
 	//Split temps by thread num
 	const Int perThread = (Int)std::ceil(double(TEMP_COUNT) / threadCount);
