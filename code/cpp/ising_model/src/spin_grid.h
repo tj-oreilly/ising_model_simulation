@@ -8,36 +8,38 @@ using NeighbourList = std::vector<std::pair<std::size_t, std::size_t>>;
 class SpinGrid
 {
 public:
-	SpinGrid(std::size_t xSize, std::size_t ySize, uint64_t seed, double interactionStrength = 1.0) : _xSize(xSize), _ySize(ySize), _interactionStrength(interactionStrength)
+	SpinGrid(std::size_t xSize, std::size_t ySize, uint64_t seed, double magneticField, double interactionStrength = 1.0) : _xSize(xSize), _ySize(ySize), _magneticField(magneticField), _interactionStrength(interactionStrength)
 	{
-		_spinGrid = std::make_unique<int8_t[]>(xSize * ySize);
+		_spinGrid = std::vector<int8_t>(xSize * ySize);
 		_rnd.Init(seed);
-
-		//Generate random spin arrangement
-		for (std::size_t x = 0; x < _xSize; ++x)
-		{
-			for (std::size_t y = 0; y < _ySize; ++y)
-			{
-				if (_rnd.Get11() < 0)
-					SetSpin(x, y, -1);
-				else
-					SetSpin(x, y, 1);
-			}				
-		}
 	}
 
+	void SetMagneticField(double fieldStrength);
+	void SetTemperature(double kBT);
+	void SetGrid(const std::vector<int8_t>& grid);
 	void SetSpin(std::size_t x, std::size_t y, int8_t spin);
 	int8_t GetSpin(std::size_t x, std::size_t y) const;
-	NeighbourList GetNearestNeighbours(std::size_t x, std::size_t y) const;
 	void Iterate();
+	double GetTotalEnergy() const;
+	int64_t GetMagnetisation() const;
 
 private:
+	NeighbourList GetNearestNeighbours(std::size_t x, std::size_t y) const;
+	double CalculateEnergy(std::size_t x, std::size_t y) const;
+	void CalculateTotalEnergy();
+	void CalculateMagnetisation();
+
 	std::size_t _xSize = 0;
 	std::size_t _ySize = 0;
-	std::unique_ptr<int8_t[]> _spinGrid = nullptr;
+	std::vector<int8_t> _spinGrid;
 
 	Random64 _rnd;
 
+	double _totalEnergy = 0.0;
+	int64_t _totalMagnetisation = 0;
+
+	double _exps[2];
 	double _interactionStrength = 1.0;
-	double _beta = 2.5;
+	double _magneticField = 0.0;
+	double _beta = 1.0;
 };

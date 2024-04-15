@@ -12,9 +12,9 @@
 	
 	\begin{titlepage}
 		\begin{center}
-			{\Huge TITLE}\\[0.5cm]
+			{\Huge Monte Carlo Simulation of Phase Transitions}\\[0.5cm]
 			\textit{Haodong Chang and Tavis O'Reilly}\\[0.3cm]
-			\textit{XXXXXXXX and 10903943}\\[0.3cm]
+			\textit{11505303 and 10903943}\\[0.3cm]
 			Department of Physics and Astronomy\\[0.3cm]
 			University of Manchester\\[0.3cm]
 			PHYS20872 Theory Computing Project\\[0.3cm]
@@ -37,11 +37,249 @@
 	\section{Introduction}
 	
 	Brief introduction to the problem.
+
+	Our discussion over phase transitions will be based on the Ising model, 
+	which is a one of the few models that can be solved analytically in two dimensions.
+
+	% (To be added: definition of phase transitions, the importance of the Ising model, etc.)
 	
 	\section{Theory}
+
+	Let's consider a simple model of spins on a lattice.
+	Each spin can be in one of two states, up or down, which we will represent by $s_i = \pm 1$.
+
+	Every spin interacts with its nearest neighbours, and each pair contributes $-J s_i s_j$ to the energy, 
+	where $J$ is a constant representing the strength of the interaction.
+
+	There is also an external magnetic field, represented by $h$.
+	Every spin in the magnetic field contributes $-h s_i$ to the total energy.
+
+	A figure showing 1D and 2D lattices with spins (to be added).
+
+	Thus, the total energy of the system is given by
+	\begin{equation} \label{eq:Hamiltonian}
+		H(\{s_i\}) = -J \sum_{\langle i,j \rangle} s_i s_j - h \sum_i s_i
+	\end{equation}
+	where the first sum is over all pairs of nearest neighbours, and the second sum is over all spins.
+	We may call the total energy as Hamiltonian in the following.
 	
-	Describe the theory of the model.
+	Our calculation and simulation will be dealt in the canonical ensemble, where the temperature $T$ is fixed.
+
+	By now, we have encountered every ingredient of the Ising model: 
+	shape of the lattice $\langle i,j \rangle$, interaction strength $J$, external magnetic field $h$, and temperature $T$.
 	
+	Given these, we can calculate the partition function of the system, which is the key to all thermodynamic properties.
+	\begin{equation} \label{eq:PartitionFunction}
+		Z = \sum_{\{s_i\}} e^{-\beta H(\{s_i\})}, \quad \beta = \frac{1}{k_B T}
+	\end{equation}
+	The canonical ensemble assigns a probability to each state $\{s_i\}$ given by
+	\begin{equation} \label{eq:Probability}
+		P(\{s_i\}) = \frac{e^{-\beta H(\{s_i\})}}{Z}
+	\end{equation}
+	As you can see, states with lower energy are more likely to be found.
+
+	Then we can discuss the meaning of $J$ and $h$.
+	\begin{itemize}
+		\item If $J > 0$, neighbours with parallel spins have lower energy, so the system tends to be aligned, which is called ferromagnetic.
+		\item If $J < 0$, neighbouring spins tend to be antiparallel, which is called anti-ferromagnetic.
+	\end{itemize}
+	\begin{itemize}
+		\item If $h > 0$, spins prefer to be $s_i = +1$.
+		\item If $h < 0$, spins prefer to be $s_i = -1$.
+	\end{itemize}
+	We can see that spins tend to align with the magnetic field, which is called paramagnetic.
+
+	% (Briefly mention the concept of phase transitions. Add or not?)
+
+	In the following of the theory section, we will start from some simple cases, and then generalize to more complex ones.
+
+	\subsection{Ising Model without interaction ($J=0$)}
+
+	When there is no interaction between spins, the shape of the lattice doesn't matter at all, and the Hamiltonian becomes
+	\begin{equation} \label{eq:HamiltonianNoInteraction}
+		H(\{s_i\}) = -h \sum_i s_i
+	\end{equation}
+	which is simply the energy of a collection of spins in a magnetic field.
+
+	Then the partition function is
+	\begin{equation} \label{eq:PartitionFunctionNoInteraction}
+		\begin{aligned}
+			Z &= \sum_{\{s_i\}} e^{-\beta H(\{s_i\})} = \sum_{\{s_i\}} e^{\beta h \sum_i s_i} = \prod_i \sum_{s_i=\pm1} e^{\beta h s_i} \\
+			&= \prod_i (e^{\beta h} + e^{-\beta h}) = (e^{\beta h} + e^{-\beta h})^N = (2\cosh(\beta h))^N
+		\end{aligned}
+	\end{equation}
+
+	The energy of the system can be calculated as
+	\begin{equation} \label{eq:EnergyNoInteraction}
+		E \equiv \langle H \rangle = -\frac{\partial}{\partial \beta} \ln Z = - N h \tanh(\beta h)
+	\end{equation}
+
+	Here because of the absence of interaction, the relation between energy and magnetisation is simple, and we have
+	\begin{equation} \label{eq:MagnetisationNoInteraction}
+		M \equiv \langle \sum_i s_i \rangle = -\frac{E}{h} = N \tanh(\beta h)
+	\end{equation}
+
+	\subsection{1D Ising Model without external field ($h=0$)}
+
+	% (To be added: a figure)
+
+	In this case, the Hamiltonian becomes
+	\begin{equation} \label{eq:Hamiltonian1DNoField}
+		H(\{s_i\}) = -J \sum_{i=1}^{N-1} s_i s_{i+1}
+	\end{equation}
+
+	The interaction makes it difficult to calculate the partition function, 
+	but considering what we have done for the 1D Ising model without interaction, 
+	we can transform the case into a non-interacting one by introducing some new variables $p_i = s_i s_{i+1}$.
+	Here $\{s_1, s_2, \cdots, s_N\}$ and $\{s_1, p_1, p_2, \cdots, p_{N-1}\}$ are equivalent descriptions of the system.
+	The inverse transform is simply $s_i = s_1 \prod_{j=1}^{i-1} p_j$.
+	Then the Hamiltonian becomes
+	\begin{equation} \label{eq:Hamiltonian1DNoFieldTransformed}
+		H(s_1, \{p_i\}) = -J \sum_{i=1}^{N-1} p_i
+	\end{equation}
+
+	Applying the result of equation \eqref{eq:PartitionFunctionNoInteraction}, we have the partition function
+	\begin{equation} \label{eq:PartitionFunction1DNoField}
+		\begin{aligned}
+			Z &= \sum_{s_1, \{p_i\}} e^{-\beta H(s_1, \{p_i\})} \\
+			&= 2(2\cosh(\beta J))^{N-1}
+		\end{aligned}
+	\end{equation}
+	The factor 2 comes from the two possible values of $s_1$.
+
+	The boundary conditions (B.C.) here needs to be specified.
+	Our discussion just now is based on free-end B.C., where the first and last spins are not connected.
+	Another common choice is periodic boundary conditions (PBC), which means $s_{N+1} = s_1$, and the Hamiltonian becomes
+	\begin{equation} \label{eq:Hamiltonian1DNoFieldPeriodic}
+		H(\{s_i\}) = -J \sum_{i=1}^{N} s_i s_{i+1}
+	\end{equation}
+
+	Similarly, we can transform $\{s_1, s_2, \cdots, s_N\}$ into $\{s_1, p_1, p_2, \cdots, p_{N-1}\}$, 
+	and calculate the partition function under PBC
+	\begin{equation} \label{eq:PartitionFunction1DNoFieldPeriodic}
+		Z = (2\cosh(\beta J))^N(1 + (\tanh(\beta J))^N)
+	\end{equation}
+
+	The advantage of PBC over free-end B.C. is that no spin is special.
+	When the lattice is large enough ($N \to \infty$), they show no difference.
+
+	\subsection{General 1D Ising model($J\neq0, h\neq0$)}
+
+	First, let's consider a simple Ising model with only two spins under PBC.
+	The Hamiltonian is
+	\begin{equation} \label{eq:Hamiltonian1DGeneral2Spins}
+		H(s_1, s_2) = -J s_1 s_2 - J s_2 s_1 - hs_1 - hs_2
+	\end{equation}
+
+	Define a matrix $P$, we can see why we need it later.
+	\begin{equation} \label{eq:MatrixP}
+		P = \begin{pmatrix}
+			e^{\beta(J+h)} & e^{-\beta J} \\
+			e^{-\beta J} & e^{\beta(J-h)}
+		\end{pmatrix}
+	\end{equation}
+
+	Then the partition function is
+	\begin{equation} \label{eq:PartitionFunction1DGeneral2Spins}
+		Z = \sum_{s_1, s_2} e^{-\beta H(s_1, s_2)} = \mathrm{Tr}(P \cdot P)
+	\end{equation}
+	Here $\mathrm{Tr}$ denotes the trace of a matrix.
+
+	One can easily verify the above result by expanding the matrix product, 
+	but may be curious about why we need such a matrix $P$.
+	Actually, the matrix $P$ indicates the "connection" between the two spins.
+
+	Suppose that the first row and column of $P$ represent a state $s = +1$, 
+	while the second row and column represent another state $s = -1$.
+	We can write down the elements of $P$ as
+	\begin{equation} \label{eq:MatrixPElements}
+		P_{+,+} = e^{\beta(J+h)}, \quad P_{+,-} = P_{-,+} = e^{-\beta J}, \quad P_{-,-} = e^{\beta(J-h)}
+	\end{equation}
+
+	The contribution of the connection between two spins to the partition function is
+	\begin{equation} \label{eq:PartitionFunction1DGeneral2SpinsConnection}
+		P_{s_1, s_2} = e^{\beta(J s_1 s_2 + \frac12h(s_1 + s_2))}
+	\end{equation}
+	The factor $\frac12$ here is because each spin will be counted twice in two connections it has.
+
+	We can write down the partition function of such a system with $2$ spins as
+	\begin{equation} \label{eq:PartitionFunction1DGeneral2SpinsConnectionSum}
+		\begin{aligned}
+		Z &= \sum_{s_1, s_2} e^{-\beta H(s_1, s_2)} = \sum_{s_1, s_2} e^{\beta(2J s_1 s_2 + h(s_1 + s_2))} \\
+		&= \sum_{s_1, s_2} e^{\beta(J s_1 s_2 + \frac12h(s_1 + s_2))} \cdot e^{\beta(J s_1 s_2 + \frac12h(s_1 + s_2))} \\
+		&= \sum_{s_1, s_2} P_{s_1, s_2} \cdot P_{s_2, s_1} \\
+		&= \mathrm{Tr}(P \cdot P)
+		\end{aligned}
+	\end{equation}
+
+	It's easy to generalize the result to a system with $N$ spins.
+	\begin{equation} \label{eq:PartitionFunction1DGeneral}
+		\begin{aligned}
+			Z &= \sum_{\{s_i\}} e^{-\beta H(\{s_i\})} = \sum_{\{s_i\}} \prod_{i=1}^{N} e^{\beta(J s_i s_{i+1} + \frac12h(s_i + s_{i+1}))} \\
+			&= \sum_{\{s_i\}} \prod_{i=1}^{N} P_{s_i, s_{i+1}} = \mathrm{Tr}(P^N) \\
+		\end{aligned}
+	\end{equation}
+
+	Now our task is simplified into calculating the trace of the $N$-th power of a $2 \times 2$ matrix $P$.
+	Mathematicians have already solved this problem by diagonalizing the matrix
+	\begin{equation} \label{eq:MatrixPDiagonal}
+		P = U \cdot D \cdot U^\dagger
+	\end{equation}
+	Here $U$ is a unitary matrix, which means $U^\dagger U = I$, and $D$ is a diagonal matrix.
+	It has been proven that such diagonalization is always possible for a Hermitian matrix like $P$.
+
+	Then the $N$-th power of $P$ is
+	\begin{equation} \label{eq:MatrixPN}
+		P^N = U \cdot D^N \cdot U^\dagger
+	\end{equation}
+
+	We only care about the trace of $P^N$
+	\begin{equation} \label{eq:MatrixPNTrace}
+		\begin{aligned}
+			\mathrm{Tr}(P^N) &= \mathrm{Tr}(U \cdot D^N \cdot U^\dagger) \\
+			&= \mathrm{Tr}((U \cdot D^N) \cdot U^\dagger) = \mathrm{Tr}(U^\dagger \cdot (U \cdot D^N)) \\
+			&= \mathrm{Tr}(D^N)
+		\end{aligned}
+	\end{equation}
+
+	For a diagonal matrix $D = \mathrm{diag}(\lambda_+, \lambda_-)$, 
+	its $N$-th power is also a diagonal matrix $D^N = \mathrm{diag}(\lambda_+^N, \lambda_-^N)$.
+	Thus, we have
+	\begin{equation} \label{eq:MatrixPNTraceDiagonal}
+		\mathrm{Tr}(P^N) = \lambda_+^N + \lambda_-^N
+	\end{equation}
+
+	Now we only need to find $\lambda_\pm$, which are the eigenvalues of $P$.
+	I used Mathematica to calculate them, and the result is
+	\begin{equation} \label{eq:MatrixPEigenvalues}
+		\lambda_\pm = e^{\beta J} \left[\cosh(\beta h) \pm \sqrt{e^{-4\beta J}+\sinh^2(\beta h)}\right]
+	\end{equation}
+
+	Finally, we have the partition function of a 1D Ising model with $N$ spins
+	\begin{equation} \label{eq:PartitionFunction1DGeneralFinal}
+		\begin{aligned}
+			Z &= \mathrm{Tr}(P^N) = \lambda_+^N + \lambda_-^N \\
+			&= e^{N \beta J} \left\{\left[\cosh(\beta h) + \sqrt{e^{-4\beta J}+\sinh^2(\beta h)}\right]^N
+			 + \left[\cosh(\beta h) - \sqrt{e^{-4\beta J}+\sinh^2(\beta h)}\right]^N\right\}
+		\end{aligned}
+	\end{equation}
+
+	Now we can make some discussions over this equation.
+	\begin{itemize}
+		\item When $J = 0$, equation \eqref{eq:PartitionFunction1DGeneralFinal} reduces to equation \eqref{eq:PartitionFunctionNoInteraction},
+			which is the partition function of a system without interaction.
+		\item We didn't provide the derivation of equation \eqref{eq:PartitionFunction1DNoFieldPeriodic} in section 2.2,
+			but now it can be obtained by setting $h = 0$ in equation \eqref{eq:PartitionFunction1DGeneralFinal}.
+		\item In the limit $N \to \infty$, we have $\lambda_+^N \gg \lambda_-^N$, and the partition function becomes
+			\begin{equation} \label{eq:PartitionFunction1DGeneralLimit}
+				Z \approx \lambda_+^N = e^{N \beta J} \left[\cosh(\beta h) + \sqrt{e^{-4\beta J}+\sinh^2(\beta h)}\right]^N
+			\end{equation}
+		It will be much easier for us to calculate energy $E$, heat capacity $C_V$, magnetisation $M$, 
+		and other thermodynamic properties under such approximation.
+	\end{itemize}
+
+	\subsection{2D Ising Model}
+
 	\section{Implementation}
 	
 	Brief description of how the model was built into the code and how data was obtained from this.
@@ -53,5 +291,6 @@
 	\section{Conclusion}
 	
 	Conclude results.
-	
+
+
 \end{document}
