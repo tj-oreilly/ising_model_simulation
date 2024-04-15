@@ -4,6 +4,7 @@
 #include <fstream>
 #include <string>
 #include <thread>
+#include <array>
 #include "spin_grid.h"
 #include "cqueue.h"
 #include <ShObjIdl_core.h>
@@ -12,31 +13,35 @@
 #define THREADED
 
 typedef std::basic_string<wchar_t> wstring;
-typedef int Int;
-typedef unsigned int UInt;
+typedef long long Int;
+typedef unsigned long long UInt;
+typedef double Float;
 
 //Constants
 constexpr Int GRID_SIZE = 1000;				//Size of grid to generate
-constexpr Int TEMP_COUNT = 100;				//Number of temperature readings to take
-constexpr double TEMP_MIN = 1e-6;			//Minimum value for kBT
-constexpr double TEMP_MAX = 4.0;			//Maximum value for kBT
-constexpr Int MAX_ITER_COUNT = 1e9;		//Maximum iterations to run for each temperature
-constexpr Int ITER_AVG = 1e6;					//Saved energy is averaged over the last n iterations
+constexpr Int TEMP_COUNT = 500;				//Number of temperature readings to take
+constexpr Float TEMP_MIN = 1e-6;			//Minimum value for kBT
+constexpr Float TEMP_MAX = 4.0;			//Maximum value for kBT
+constexpr Int MAX_ITER_COUNT = 1000000000000;		//Maximum iterations to run for each temperature
+constexpr Int ITER_AVG = 1000000;					//Saved energy is averaged over the last n iterations
+constexpr Int SAMPLE_GAP = 1000;				//Gap between samples for calculating the mean (reduces speed loss from mean check)
+constexpr Int STD_DEV_COUNT = 2;			//Standard deviations for fluctuations to be considered at equilibrium.
 constexpr Int GRAD_AVG = 10;          //Points to average over for the gradient calculation (heat capacity)
-constexpr double MAGNETIC_FIELD = 0.0; //Magnetic field strength
+constexpr Float MAGNETIC_FIELD = 0.0; //Magnetic field strength
+constexpr std::array<int8_t, 10> SPIN_OPTIONS = { -1, -1, 1, 1, 1, 1, 1, 1, 1, 1 }; //Distribution of spins to use (biased one way)
 
 struct ModelData
 {
-  double temp = 0.0;
-  double energy = 0.0;
-  double magnetisation = 0.0;
+  Float temp = 0.0;
+  Float energy = 0.0;
+  Float magnetisation = 0.0;
 
 	/// @brief Default constructor
 	ModelData()
 	{
 	}
 
-	ModelData(double temp_, double energy_, double magnetisation_) : temp(temp_), energy(energy_), magnetisation(magnetisation_)
+	ModelData(Float temp_, Float energy_, Float magnetisation_) : temp(temp_), energy(energy_), magnetisation(magnetisation_)
 	{
 	}
 };
@@ -97,18 +102,16 @@ void GenRandomSpins(std::vector<int8_t>& spins, uint64_t seed)
 	Random64 rnd;
 	rnd.Init(seed);
 
-	constexpr int8_t spinStates[2] = {1, -1};
-
 	for (Int x = 0; x < GRID_SIZE; ++x)
 	{
 		for (Int y = 0; y < GRID_SIZE; ++y)
 		{
-			spins[x * GRID_SIZE + y] = 1; // spinStates[rnd.GetRandInt(0, 2)];
+			spins[x * GRID_SIZE + y] = SPIN_OPTIONS[rnd.GetRandInt(0, SPIN_OPTIONS.size())];;
 		}
 	}
 }
 
-double sqr(double x)
+Float sqr(Float x)
 {
 	return x * x;
 }
@@ -117,12 +120,12 @@ double sqr(double x)
 /// @param buffer 
 /// @param mean 
 /// @param stdDevSq 
-void CalculateMeanStdDev(const cqueue<double>& buffer, double& mean, double& stdDevSq)
+void CalculateMeanStdDev(const cqueue<Float>& buffer, Float& mean, Float& stdDevSq)
 {
 	mean = 0.0;
-	double meanSq = 0.0;
+	Float meanSq = 0.0;
 
-	double buffVal;
+	Float buffVal;
 	for (std::size_t i = 0; i < buffer.size(); ++i)
 	{
 		buffVal = buffer.back(i);
@@ -138,7 +141,7 @@ void CalculateMeanStdDev(const cqueue<double>& buffer, double& mean, double& std
 
 void EnergyThread(SpinGrid& grid, Int tempNum, std::vector<ModelData>& energyValues, const std::vector<int8_t>& initialSpins)
 {
-	double tempValue;
+	Float tempValue;
 	int64_t startTime, endTime;
 
 	//Timing
@@ -146,34 +149,38 @@ void EnergyThread(SpinGrid& grid, Int tempNum, std::vector<ModelData>& energyVal
 	startTime = clock.time_since_epoch() / std::chrono::microseconds(1);
 
 	//Temperature to test
-	tempValue = TEMP_MIN + (TEMP_MAX - TEMP_MIN) * (double(tempNum) / double(TEMP_COUNT - 1));
+	tempValue = TEMP_MIN + (TEMP_MAX - TEMP_MIN) * (Float(tempNum) / Float(TEMP_COUNT - 1));
 	grid.SetTemperature(tempValue);
 	grid.SetGrid(initialSpins);
 
 	//Buffer for calculating mean energy
-	const Int buffSize = ITER_AVG;
+	const Int buffSize = ITER_AVG / SAMPLE_GAP;
 
-	cqueue<double> energyBuff(buffSize); //energy
+	cqueue<Float> energyBuff(buffSize); //energy
 	cqueue<int64_t> magnetisationBuff(buffSize);
-	double lastMean = 0.0;
-	double lastStdDev = 0.0; //Square std dev avoids need for sqrt
+	Float lastMean = 0.0;
+	Float lastStdDev = 0.0; //Square std dev avoids need for sqrt
 
 	//Iterations
 	for (Int i = 0; i < MAX_ITER_COUNT; ++i)
 	{
 		grid.Iterate();
-		energyBuff.push_back(grid.GetTotalEnergy());
-		magnetisationBuff.push_back(grid.GetMagnetisation());
+
+		if (i % SAMPLE_GAP == 0)
+		{
+			energyBuff.push_back(grid.GetTotalEnergy());
+			magnetisationBuff.push_back(grid.GetMagnetisation());
+		}
 
 		//Check termination case
 		if (i % ITER_AVG == 0)
 		{
-			double mean, stdDev;
+			Float mean, stdDev;
 			CalculateMeanStdDev(energyBuff, mean, stdDev);
 
 			if (i > 0)
 			{
-				const double devLimit = (lastStdDev / sqrt(ITER_AVG));
+				const Float devLimit = STD_DEV_COUNT * (lastStdDev / sqrt(buffSize));
 				if (abs(lastMean - mean) <= devLimit)
 				{
 					std::cout << "Exit early, " + std::to_string(i) + " iterations\n";
@@ -187,7 +194,7 @@ void EnergyThread(SpinGrid& grid, Int tempNum, std::vector<ModelData>& energyVal
 	}
 
 	//Calculate mean
-	double meanEnergy = 0.0;
+	Float meanEnergy = 0.0;
 	Int count = 0;
 	while (!energyBuff.empty())
 	{
@@ -198,7 +205,7 @@ void EnergyThread(SpinGrid& grid, Int tempNum, std::vector<ModelData>& energyVal
 
 	meanEnergy /= count;
 
-	double meanMagnetisation = 0.0;
+	Float meanMagnetisation = 0.0;
 	count = 0;
 	while (!magnetisationBuff.empty())
 	{
@@ -214,7 +221,7 @@ void EnergyThread(SpinGrid& grid, Int tempNum, std::vector<ModelData>& energyVal
 	clock = std::chrono::system_clock::now();
 	endTime = clock.time_since_epoch() / std::chrono::microseconds(1);
 
-	double timeTaken = (endTime - startTime) / 1000000.0;
+	Float timeTaken = (endTime - startTime) / 1000000.0;
 	std::string prIntStr = "Temperature: " + std::to_string(tempValue) + ", Time Taken: " + std::to_string(timeTaken) + "\n";
 	std::cout << prIntStr;
 }
@@ -235,7 +242,7 @@ void CalculateEnergyValues(uint64_t seed, const std::vector<int8_t>& initialSpin
 		gridArray.push_back(SpinGrid(GRID_SIZE, GRID_SIZE, seed + (i+1), MAGNETIC_FIELD));
 
 	//Split temps by thread num
-	const Int perThread = (Int)std::ceil(double(TEMP_COUNT) / threadCount);
+	const Int perThread = (Int)std::ceil(Float(TEMP_COUNT) / threadCount);
 
 	//Start threading
 	std::vector<std::thread> threads(threadCount);
@@ -303,8 +310,8 @@ void WriteHeatCapToFile(const std::vector<ModelData>& energies, const wstring& d
 		return;
 
 	//Calculate heat capacities
-	std::vector<double> heatCapacities(energies.size());
-	double gradient = 0.0;
+	std::vector<Float> heatCapacities(energies.size());
+	Float gradient = 0.0;
 	int8_t count = 0;
 
 	for (Int energyIndex = 0; energyIndex < energies.size(); ++energyIndex)
