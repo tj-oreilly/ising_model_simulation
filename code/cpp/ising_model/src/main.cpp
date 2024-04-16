@@ -18,11 +18,11 @@ typedef unsigned long long UInt;
 typedef double Float;
 
 //Constants
-constexpr Int GRID_SIZE = 1000;				//Size of grid to generate
-constexpr Int TEMP_COUNT = 500;				//Number of temperature readings to take
+constexpr Int GRID_SIZE = 100;				//Size of grid to generate
+constexpr Int TEMP_COUNT = 10;				//Number of temperature readings to take
 constexpr Float TEMP_MIN = 1e-6;			//Minimum value for kBT
 constexpr Float TEMP_MAX = 4.0;			//Maximum value for kBT
-constexpr Int MAX_ITER_COUNT = 1000000000000;		//Maximum iterations to run for each temperature
+constexpr Int MAX_ITER_COUNT = 1000000000;		//Maximum iterations to run for each temperature
 constexpr Int ITER_AVG = 1000000;					//Saved energy is averaged over the last n iterations
 constexpr Int SAMPLE_GAP = 1000;				//Gap between samples for calculating the mean (reduces speed loss from mean check)
 constexpr Int STD_DEV_COUNT = 2;			//Standard deviations for fluctuations to be considered at equilibrium.
@@ -235,11 +235,11 @@ void CalculateEnergyValues(uint64_t seed, const std::vector<int8_t>& initialSpin
 	const UInt threadCount = std::thread::hardware_concurrency();
 
 	//Initialise SpinGrid instance for each thread
-	std::vector<SpinGrid> gridArray;
+	std::vector<SpinGrid2D> gridArray;
 	gridArray.reserve(threadCount);
 
 	for (UInt i = 0; i < threadCount; ++i)
-		gridArray.push_back(SpinGrid(GRID_SIZE, GRID_SIZE, seed + (i+1), MAGNETIC_FIELD));
+		gridArray.push_back(SpinGrid2D(GRID_SIZE, GRID_SIZE, seed + (i+1), MAGNETIC_FIELD));
 
 	//Split temps by thread num
 	const Int perThread = (Int)std::ceil(Float(TEMP_COUNT) / threadCount);

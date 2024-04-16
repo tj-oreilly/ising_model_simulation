@@ -1,5 +1,10 @@
 #include "spin_grid.h"
 
+int8_t SpinGrid::SpinAt(std::size_t index) const
+{
+	return _spinGrid.at(index);
+}
+
 void SpinGrid::SetMagneticField(double fieldStrength)
 {
 	_magneticField = fieldStrength;
@@ -12,24 +17,14 @@ void SpinGrid::SetTemperature(double kBT)
 		_beta = 1.0 / kBT;
 
 		//Calculate probabilities
-		_exps[0] = exp(-4.0 * _beta);
-		_exps[1] = exp(-8.0 * _beta);
+		//_exps[0] = exp(-4.0 * _beta);
+		//_exps[1] = exp(-8.0 * _beta);
 	}
-}
-
-void SpinGrid::SetSpin(std::size_t x, std::size_t y, int8_t spin)
-{
-	_spinGrid[x * _ySize + y] = spin;
-}
-
-int8_t SpinGrid::GetSpin(std::size_t x, std::size_t y) const
-{
-	return _spinGrid[x * _ySize + y];
 }
 
 void SpinGrid::SetGrid(const std::vector<int8_t>& grid)
 {
-	if (grid.size() == _xSize * _ySize)
+	if (grid.size() == _spinGrid.size())
 	{
 		_spinGrid = grid;
 		CalculateTotalEnergy();
@@ -37,41 +32,13 @@ void SpinGrid::SetGrid(const std::vector<int8_t>& grid)
 	}
 }
 
-// Periodic Boundary Conditions needed due to the method of calculating probability
-NeighbourList SpinGrid::GetNearestNeighbours(std::size_t x, std::size_t y) const
+double SpinGrid::CalculateEnergy(std::size_t index) const
 {
-	NeighbourList neighbours;
-	
-	//Periodic boundary condition
-	if (x > 0)
-		neighbours.push_back({ x - 1, y });
-	else
-		neighbours.push_back({ _xSize - 1, y });
+	const int8_t spinValue = SpinAt(index);
 
-	if (x < _xSize - 1)
-		neighbours.push_back({ x + 1, y });
-	else
-		neighbours.push_back({ 0, y });
-
-	if (y > 0)
-		neighbours.push_back({ x, y - 1 });
-	else
-		neighbours.push_back({ x, _ySize - 1 });
-
-	if (y < _ySize - 1)
-		neighbours.push_back({ x, y + 1 });
-	else
-		neighbours.push_back({ x, 0 });
-
-	return neighbours;
-}
-
-double SpinGrid::CalculateEnergy(std::size_t x, std::size_t y) const
-{
-	const int8_t spinValue = GetSpin(x, y);
 	double energy = 0.0;
-	for (const auto& neighbour : GetNearestNeighbours(x, y))
-		energy += -spinValue * GetSpin(neighbour.first, neighbour.second);
+	for (std::size_t neighbour : GetNearestNeighbours(index))
+		energy += -spinValue * SpinAt(neighbour);
 
 	energy *= _interactionStrength;
 	energy += -_magneticField * spinValue;
@@ -83,27 +50,21 @@ void SpinGrid::CalculateTotalEnergy()
 {
 	_totalEnergy = 0.0;
 
-	for (std::size_t x = 0; x < _xSize; ++x)
+	for (std::size_t i = 0; i < _spinGrid.size(); ++i)
 	{
-		for (std::size_t y = 0; y < _ySize; ++y)
-		{
-			_totalEnergy += CalculateEnergy(x, y);
-		}
+		_totalEnergy += CalculateEnergy(i);
 	}
 
-	_totalEnergy /= 2; //Double counted pairs
+	_totalEnergy /= 2; //Double counted pairs (true in 3D?)
 }
 
 void SpinGrid::CalculateMagnetisation()
 {
 	_totalMagnetisation = 0;
 
-	for (std::size_t x = 0; x < _xSize; ++x)
+	for (std::size_t i = 0; i < _spinGrid.size(); ++i)
 	{
-		for (std::size_t y = 0; y < _ySize; ++y)
-		{
-			_totalMagnetisation += GetSpin(x, y);
-		}
+		_totalMagnetisation += SpinAt(i);
 	}
 }
 
@@ -120,26 +81,23 @@ int64_t SpinGrid::GetMagnetisation() const
 /// @brief Performs one iteration to try and change a random spin in the grid.
 void SpinGrid::Iterate()
 {
-	std::size_t x = _rnd.GetRandInt(0, _xSize);
-	std::size_t y = _rnd.GetRandInt(0, _ySize);
+	int64_t randIndex = _rnd.GetRandInt(0, _spinGrid.size());
 
 	//Calculate the energy change
-	int8_t newSpin = GetSpin(x, y) * -1;
-	double energyChange = -2 * CalculateEnergy(x, y);
+	int8_t newSpin = SpinAt(randIndex) * -1;
+	double energyChange = -2 * CalculateEnergy(randIndex);
 
 	//Use cached exponentials
-	double expValue;
-	if (energyChange == 4.0)
-		expValue = _exps[0];
-	else if (energyChange == 8.0)
-		expValue = _exps[1];
-	else
-		expValue = exp(-energyChange * _beta);
+	double expValue = exp(-energyChange * _beta);
+	//if (energyChange == 4.0)
+		//expValue = _exps[0];
+	//else if (energyChange == 8.0)
+		//expValue = _exps[1];
 
 	//Whether to flip spin
 	if (energyChange <= 0.0 || _rnd.Get01() <= expValue)
 	{
-		SetSpin(x, y, newSpin);
+		SetSpin(randIndex, newSpin);
 		_totalEnergy += energyChange;
 		_totalMagnetisation += 2 * newSpin;
 
@@ -151,4 +109,83 @@ void SpinGrid::Iterate()
 			printf("Energy change calculation error.");
 #endif
 	}
+}
+
+void SpinGrid::SetSpin(std::size_t index, int8_t spin)
+{
+	_spinGrid[index] = spin;
+}
+
+//SpinGrid2D
+std::size_t SpinGrid2D::IndexFromXY(int64_t x, int64_t y) const
+{
+	//Periodic boundary condition
+	x = x < 0 ? (_xSize + x) : x;
+	x = x >= _xSize ? (x - _xSize) : x;
+
+	y = y < 0 ? (_ySize + y) : y;
+	y = y >= _ySize ? (y - _ySize) : y;
+
+	return x * _ySize + y;
+}
+
+/// @brief Gets the nearest neighbours for a specific spin (using periodic boundary condition).
+/// @return 
+NeighbourList SpinGrid2D::GetNearestNeighbours(std::size_t index) const
+{
+	//Get x and y from index
+	int64_t x = index / _ySize;
+	int64_t y = index - (x * _ySize);
+
+	const std::array<Off2, 4> offsets = {
+		Off2(1, 0), Off2(-1, 0), Off2(0, 1), Off2(0, -1)
+	};
+
+	NeighbourList neighbours;
+
+	for (const Off2& off : offsets)
+	{
+		neighbours.push_back(IndexFromXY(x + off.x, y + off.y));
+	}
+
+	return neighbours;
+}
+
+//SpinGrid3D
+std::size_t SpinGrid3D::IndexFromXYZ(int64_t x, int64_t y, int64_t z) const
+{
+	//Periodic boundary condition
+	x = x < 0 ? (_xSize + x) : x;
+	x = x >= _xSize ? (x - _xSize) : x;
+
+	y = y < 0 ? (_ySize + y) : y;
+	y = y >= _ySize ? (y - _ySize) : y;
+
+	z = z < 0 ? (_zSize + z) : z;
+	z = z >= _zSize ? (z - _zSize) : z;
+
+	return x * _ySize * _zSize + y * _zSize + z;
+}
+
+NeighbourList SpinGrid3D::GetNearestNeighbours(std::size_t index) const
+{
+	//Get x, y, z from index
+	int64_t x = index / (_ySize * _zSize);
+	int64_t y = (index - (x * _ySize * _zSize)) / _zSize;
+	int64_t z = index - (x * _ySize * _zSize + y * _zSize);
+
+	NeighbourList neighbours;
+
+	const std::array<Off3, 6> offsets = {
+		Off3(1, 0, 0), Off3(-1, 0, 0), Off3(0, 1, 0), Off3(0, -1, 0), Off3(0, 0, 1), Off3(0, 0, -1)
+	};
+
+	NeighbourList neighbours;
+
+	for (const Off3& off : offsets)
+	{
+		neighbours.push_back(IndexFromXYZ(x + off.x, y + off.y, z + off.z));
+	}
+
+	return neighbours;
 }
