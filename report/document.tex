@@ -11,6 +11,7 @@
 \usepackage{tikz}
 \usepackage{pgfplots}
 \usepackage{hyperref}
+\usepackage{subcaption}
 \bibliographystyle{ieeetr}
 
 \newcommand{\vd}{\mathrm{d}} %Vertical d (for derivatives)
@@ -31,10 +32,7 @@
 		\end{center}
 		
 		{\Large \textbf{Abstract}}\\[0.3cm]
-		The goal of this project was to use a Metropolis-Hastings algorithm, a type of Markov chain Monte Carlo method, to simulate the Ising model for ferromagnetism. In two dimensions, an exact analytic solution exists\cite{onsager_solution} that shows a phase transition at the critical temperature $T_c$. We wrote a computer simulation that implements a Metropolis-Hastings algorithm to find the average energy, heat capacity and magnetisation as a function of temperature. \\
-		
-		How our results it fits with the predictions of the model
-		
+		The goal of this project was to use a Metropolis-Hastings algorithm, a type of Markov chain Monte Carlo method, to simulate the Ising model for ferromagnetism. In two dimensions, an exact analytic solution exists\cite{onsager_solution} that shows a phase transition at some critical temperature $T_c$. We wrote a computer simulation that implements a Metropolis-Hastings algorithm to find the average energy, heat capacity and magnetisation as a function of temperature. We compared our results in two dimensions to the analytic solution and found them to closely match. We then extended our simulation to three dimensions for which no analytic solution has yet been found.
 	\end{titlepage}
 	
 	\pagenumbering{gobble}
@@ -54,14 +52,9 @@
 	\begin{equation}
 		E = -J\sum_{\left<i,j\right>}s_is_j - h\sum_i s_i,
 	\end{equation}
-	where $J$ is the interaction strength between adjacent spins, $h$ is the strength of the external magnetic field and $\displaystyle\sum_{\left<i,j\right>}$ indicates the sum over all nearest neighbours $j$ of the $i$th spin. Some simplifications have been made as in principle $J$ could not be constant \\
+	where $J$ is the interaction strength between adjacent spins, $h$ is the strength of the external magnetic field and $\sum_{\left<i,j\right>}$ indicates the sum over all nearest neighbours $j$ of the $i$th spin. Some simplifications have been made as in principle $J$ could not be constant. \\
 	
-	Our calculation and simulation will be dealt in the canonical ensemble, where the temperature $T$ is fixed.
-
-	By now, we have encountered every ingredient of the Ising model: 
-	shape of the lattice $\langle i,j \rangle$, interaction strength $J$, external magnetic field $h$, and temperature $T$.
-	
-	Given these, we can calculate the partition function of the system, which is the key to all thermodynamic properties.
+	We will be dealing with the canonical ensemble, where the temperature $T$ is fixed. The key to solving the model will be its partition function
 	\begin{equation} \label{eq:PartitionFunction}
 		Z = \sum_{\{s_i\}} e^{-\beta H(\{s_i\})}, \quad \beta = \frac{1}{k_B T}
 	\end{equation}
@@ -326,28 +319,72 @@
 	
 	\section{Results}
 	
-	After running the algorithm described above for a grid size of $1000 \times 1000$, for values of $k_B T$ between $0.0001$ and $4.0\;\mathrm{J}$, we obtained the data shown in figure [].
+	First, we ran a 2D simulation with grid size $1000 \times 1000$ and no external magnetic field, obtaining the results shown in figure \ref{fig:2d_1000_result}.
 	\begin{figure}[H]
-		\begin{center}
-			\begin{tikzpicture}
-				\begin{axis}[width=0.8\textwidth, height=0.5\textwidth, xlabel=$k_BT$, ylabel=$E/N$]
-					\addplot [mark size=0pt,blue] table[
-					col sep=comma,
-					x=temp,
-					y=energy]
-					{csv/onsager-energy.csv};
-					
-					\addplot [mark=*,mark size=0.5pt,black] table[
-					col sep=comma,
-					x=temp,
-					y=energy,
-					only marks]
-					{csv/energy-1000.csv};
-				\end{axis}
-			\end{tikzpicture}
-		\end{center}
-		\caption{A plot of the average energy per particle against $k_BT$. The blue line is the solution obtained from the Onsager solution, and the black points are the data calculated by our simulation.}
+		\begin{subfigure}{\textwidth}
+			\begin{center}
+				\begin{tikzpicture}
+					\begin{axis}[width=0.8\textwidth, height=0.5\textwidth, xlabel=$k_BT$, ylabel=$E/N$]
+						\addplot [mark size=0pt,blue] table[
+						col sep=comma,
+						x=temp,
+						y=energy]
+						{csv/onsager-energy.csv};
+						
+						\addplot [mark=*,mark size=0.5pt,black] table[
+						col sep=comma,
+						x=temp,
+						y=energy,
+						only marks]
+						{csv/energy-1000.csv};
+					\end{axis}
+				\end{tikzpicture}
+			\end{center}
+			\caption{A plot showing average energy per particle against $k_BT$.}
+		\end{subfigure}
+	
+		\begin{subfigure}{0.45\textwidth}
+			\begin{center}
+				\begin{tikzpicture}
+					\begin{axis}[width=\textwidth, height=0.8\textwidth, xlabel=$k_BT$, ylabel=$M/N$]
+						\addplot [mark=*,mark size=0.5pt,black] table[
+						col sep=comma,
+						x=temp,
+						y=magnetisation,
+						only marks]
+						{csv/magnetisation-1000.csv};
+					\end{axis}
+				\end{tikzpicture}
+			\end{center}
+			\caption{A plot showing average magnetisation per particle against $k_BT$.}
+		\end{subfigure}
+		\begin{subfigure}{0.45\textwidth}
+			\begin{center}
+				\begin{tikzpicture}
+					\begin{axis}[width=\textwidth, height=0.8\textwidth, xlabel=$k_BT$, ylabel=$C_V/N$]
+						\addplot [mark size=0pt,blue] table[
+						col sep=comma,
+						x=temp,
+						y=heat-cap]
+						{csv/onsager-heat-cap.csv};
+						
+						\addplot [mark=*,mark size=0.5pt,black] table[
+						col sep=comma,
+						x=temp,
+						y=heat-cap,
+						only marks]
+						{csv/heat-cap-1000.csv};
+					\end{axis}
+				\end{tikzpicture}
+			\end{center}
+			\caption{A plot showing average heat capacity per particle against $k_BT$.}
+		\end{subfigure}
+	
+		\caption{Plots of data from a 2D Ising model simulation with grid size $1000 \times 1000$ and no external magnetic field. The energy and heat capacity. In each plot, the blue line is the expected result using Onsager's solution, and the black points are the data calculated by our simulation.}
+		\label{fig:2d_1000_result}
 	\end{figure}
+	
+	From these results we can see that they closely follow the exact solution, showing that using a Metropolis-Hastings algorithm is a valid method for predicting the behaviours of the model. The results for heat capacity don't have the same sharp peak as the exact solution. Since this peak tends to infinity in the exact solution, our value is limited by both the resolution of temperature values we were using in our simulation.
 	
 	\section{Conclusion}
 	
