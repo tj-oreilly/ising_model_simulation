@@ -46,33 +46,15 @@
 	
 	\section{Introduction}
 	
-	The Ising model is a simple model of ferromagnetism, consisting of a grid of atomic spins that can either be "up" or "down". These spins only interact with their nearest neighbours, and with any external magnetic field. The Ising model can be difficult to solve analytically so numerical methods can be favourable to obtain solutions instead. \\
-	
-	Expand further:
-	\begin{itemize}
-		\item Relevance/uses?
-		\item Briefly explain temperature and energy in the model.
-	\end{itemize}
+	The Ising model is a simple model of ferromagnetism, consisting of a lattice of atomic spins that can either be "up" or "down". These spins only interact with their nearest neighbours, and with any external magnetic field. The system "prefers" to be in its lowest energy state (all spins aligned), however this average energy will increase with temperature due to the random energy transfers from the surroundings. There exists an exact analytic solution to the model in two dimensions\cite{onsager_solution}, found by Lars Onsager in 1944; in three dimensions there have been many attempts at a solution\cite{das1970exact}\cite{lou2000three}\cite{zhang2007conjectures}\cite{zhang2021exact} but each has been shown to have errors. Instead, we used numerical methods to solve the model for the temperature dependence of energy, magnetisation and heat capacity.
 	
 	\section{Theory}
-
-	Let's consider a simple model of spins on a lattice.
-	Each spin can be in one of two states, up or down, which we will represent by $s_i = \pm 1$.
-
-	Every spin interacts with its nearest neighbours, and each pair contributes $-J s_i s_j$ to the energy, 
-	where $J$ is a constant representing the strength of the interaction.
-
-	There is also an external magnetic field, represented by $h$.
-	Every spin in the magnetic field contributes $-h s_i$ to the total energy.
-
-	A figure showing 1D and 2D lattices with spins (to be added).
-
-	Thus, the total energy of the system is given by
-	\begin{equation} \label{eq:Hamiltonian}
-		H(\{s_i\}) = -J \sum_{\langle i,j \rangle} s_i s_j - h \sum_i s_i
+	
+	For a set of $N$ spins $\left\{s_i\right\}_{i=1}^N$, where the spin is $+1$ for "up" and $-1$ for "down", the total energy of the system $E$ is given by\cite{Baierlein_1999}
+	\begin{equation}
+		E = -J\sum_{\left<i,j\right>}s_is_j - h\sum_i s_i,
 	\end{equation}
-	where the first sum is over all pairs of nearest neighbours, and the second sum is over all spins.
-	We may call the total energy as Hamiltonian in the following.
+	where $J$ is the interaction strength between adjacent spins, $h$ is the strength of the external magnetic field and $\displaystyle\sum_{\left<i,j\right>}$ indicates the sum over all nearest neighbours $j$ of the $i$th spin. Some simplifications have been made as in principle $J$ could not be constant \\
 	
 	Our calculation and simulation will be dealt in the canonical ensemble, where the temperature $T$ is fixed.
 
@@ -306,13 +288,13 @@
 	Energy:
 	\begin{equation}
 		\begin{split}
-			E &= - \frac{\partial \ln{Z}}{\partial \beta} = -N\frac{\partial \ln{\lambda}}{\partial \beta}
+			\left<E\right> &= - \frac{\partial \ln{Z}}{\partial \beta} = -N\frac{\partial \ln{\lambda}}{\partial \beta}
 		\end{split}
 	\end{equation}
 	
 	\section{Implementation}
 	
-	The first step was to create a grid of spins. We opted to have the spins randomly distributed but with a bias towards the "up" direction. This ensured the magnetisation, which is sensitive to initial conditions, approached the same average each time.\\
+	The first step was to create a grid of spins. We chose to have the spins randomly distributed but with a bias towards the "up" direction. This ensured the magnetisation, which is sensitive to initial conditions, approached the same average each time.\\
 	
 	The basic algorithm that is then used is:
 	\begin{enumerate}
@@ -322,16 +304,16 @@
 		\item Repeat this process.
 	\end{enumerate}
 	
-	In our setup, the energy was calculated using a periodic boundary condition. Starting in two dimensions, we ran some initial tests of the model to observe the behaviour of the spins as the algorithm iterates, as shown in figure \ref{fig:ising_grid}.
+	Starting in two dimensions, we ran some initial tests of the model to observe the behaviour of the spins as the algorithm iterates, as shown in figure \ref{fig:ising_grid}. This nicely demonstrates the tendency for groups of aligned spins to form.
 	\begin{figure}[H]
 		\begin{center}
 			\includegraphics[width=0.5\textwidth]{./img/ising-simulation.png}
 		\end{center}
-		\caption{A two-dimensional Ising Model simulation on a $500\times 500$ grid with parameters $J = 1.0$, $\beta = 1.0$ and $h = 0$.}
+		\caption{A two-dimensional Ising Model simulation on a $500\times 500$ grid with parameters $J = 1.0$, $\beta = 1.0$ and $h = 0$. The two colours correspond to the two different values of spin.}
 		\label{fig:ising_grid}
 	\end{figure}
 	
-	In order to compare to the Onsager solution, we needed to run the same simulation for a number of different values of $\beta$. The simulation needs to be run for a sufficient number of iterations such that it reaches equilibrium. Our stopping condition was the following:
+	In order to find the temperature dependence of the energy, magnetisation and heat capacity, we needed to run the same simulation for a number of different values of $\beta$. Each simulation needs to be run for a sufficient number of iterations such that it reaches equilibrium. Our stopping condition was the following:
 	\begin{itemize}
 		\item For each block of $n$ iterations:
 		\begin{enumerate}
