@@ -180,8 +180,6 @@ NeighbourList SpinGrid3D::GetNearestNeighbours(std::size_t index) const
 		Off3(1, 0, 0), Off3(-1, 0, 0), Off3(0, 1, 0), Off3(0, -1, 0), Off3(0, 0, 1), Off3(0, 0, -1)
 	};
 
-	NeighbourList neighbours;
-
 	for (const Off3& off : offsets)
 	{
 		neighbours.push_back(IndexFromXYZ(x + off.x, y + off.y, z + off.z));
