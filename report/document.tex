@@ -368,6 +368,7 @@
 	The results we are listing below are obtained from the Onsager solution\cite{onsager_solution}.
 	Let $\lambda$ be the maximum eigenvalue of transfer matrix $P$, like in the 1D case.
 	Then when $N$ is large, the partition function is
+
 	\begin{equation}
 		\begin{split}
 			Z &= \lambda^N \\
@@ -382,7 +383,6 @@
 			E &= - \frac{\partial \ln{Z}}{\partial \beta} = -N\frac{\partial \ln{\lambda}}{\partial \beta}
 		\end{split}
 	\end{equation}
-
 	\section{Implementation}
 	
 	The first step was to create a grid of spins. We chose to have the spins randomly distributed but with a bias towards the "up" direction. This ensured the magnetisation, which is sensitive to initial conditions, approached the same average each time.\\
