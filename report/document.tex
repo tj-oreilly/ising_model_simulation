@@ -380,11 +380,11 @@
 			\caption{A plot showing average heat capacity per particle against $k_BT$.}
 		\end{subfigure}
 	
-		\caption{Plots of data from a 2D Ising model simulation with grid size $1000 \times 1000$ and no external magnetic field. The energy and heat capacity. In each plot, the blue line is the expected result using Onsager's solution, and the black points are the data calculated by our simulation.}
+		\caption{Plots of data from a 2D Ising model simulation with grid size $1000 \times 1000$ and no external magnetic field. In each plot, the blue line is the expected result using Onsager's solution, and the black points are the data calculated by our simulation.}
 		\label{fig:2d_1000_result}
 	\end{figure}
 	
-	From these results we can see that they closely follow the exact solution, showing that using a Metropolis-Hastings algorithm is a valid method for predicting the behaviours of the model. The results for heat capacity don't have the same sharp peak as the exact solution. Since this peak tends to infinity in the exact solution, our value is limited by both the resolution of temperature values we were using in our simulation.
+	From these results we can see that they closely follow the exact solution, indicating that using a Metropolis-Hastings algorithm is a valid method for predicting the behaviours of the model. The results for heat capacity don't have the same sharp peak as the exact solution. Since this peak tends to infinity in the exact solution, our value is limited by both the resolution of temperature values we were using in our simulation and the size of the grid.
 	
 	\section{Conclusion}
 	
