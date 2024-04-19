@@ -32,7 +32,7 @@
 		\end{center}
 		
 		{\Large \textbf{Abstract}}\\[0.3cm]
-		The goal of this project was to use a Metropolis-Hastings algorithm, a type of Markov chain Monte Carlo method, to simulate the Ising model for ferromagnetism. In two dimensions, an exact analytic solution exists\cite{onsager_solution} that shows a phase transition at some critical temperature $T_c$. We wrote a computer simulation that implements a Metropolis-Hastings algorithm to find the average energy, heat capacity and magnetisation as a function of temperature. We compared our results in two dimensions to the analytic solution and found them to closely match. We then extended our simulation to three dimensions for which no analytic solution has yet been found.
+		The goal of this project was to use a Metropolis-Hastings algorithm, a type of Markov chain Monte Carlo method, to simulate the Ising model for ferromagnetism. In two dimensions, an exact analytic solution exists\cite{onsager_solution} that shows a phase transition at some critical temperature $T_c$. We wrote a computer simulation that implements a Metropolis-Hastings algorithm to find the average energy, heat capacity and magnetisation as a function of temperature. We compared our results in two dimensions to the analytic solution and found them to closely match. We then extended our simulation to cases for which there is no known exact solution such as the two dimensional Ising model with an external magnetic field and the three dimensional case.
 	\end{titlepage}
 	
 	\pagenumbering{gobble}
@@ -62,48 +62,11 @@
 	\begin{equation} \label{eq:Probability}
 		P(\{s_i\}) = \frac{e^{-\beta H(\{s_i\})}}{Z}
 	\end{equation}
-	As you can see, states with lower energy are more likely to be found.
-
-	Then we can discuss the meaning of $J$ and $h$.
-	\begin{itemize}
-		\item If $J > 0$, neighbours with parallel spins have lower energy, so the system tends to be aligned, which is called ferromagnetic.
-		\item If $J < 0$, neighbouring spins tend to be antiparallel, which is called anti-ferromagnetic.
-	\end{itemize}
-	\begin{itemize}
-		\item If $h > 0$, spins prefer to be $s_i = +1$.
-		\item If $h < 0$, spins prefer to be $s_i = -1$.
-	\end{itemize}
-	We can see that spins tend to align with the magnetic field, which is called paramagnetic.
+	As you can see, states with lower energy are more likely to be found. We can see that spins tend to align with the magnetic field, which is called paramagnetic.
 
 	% (Briefly mention the concept of phase transitions. Add or not?)
 
 	In the following of the theory section, we will start from some simple cases, and then generalize to more complex ones.
-
-	\subsection{Ising Model without interaction ($J=0$)}
-
-	When there is no interaction between spins, the shape of the lattice doesn't matter at all, and the Hamiltonian becomes
-	\begin{equation} \label{eq:HamiltonianNoInteraction}
-		H(\{s_i\}) = -h \sum_i s_i
-	\end{equation}
-	which is simply the energy of a collection of spins in a magnetic field.
-
-	Then the partition function is
-	\begin{equation} \label{eq:PartitionFunctionNoInteraction}
-		\begin{aligned}
-			Z &= \sum_{\{s_i\}} e^{-\beta H(\{s_i\})} = \sum_{\{s_i\}} e^{\beta h \sum_i s_i} = \prod_i \sum_{s_i=\pm1} e^{\beta h s_i} \\
-			&= \prod_i (e^{\beta h} + e^{-\beta h}) = (e^{\beta h} + e^{-\beta h})^N = (2\cosh(\beta h))^N
-		\end{aligned}
-	\end{equation}
-
-	The energy of the system can be calculated as
-	\begin{equation} \label{eq:EnergyNoInteraction}
-		E \equiv \langle H \rangle = -\frac{\partial}{\partial \beta} \ln Z = - N h \tanh(\beta h)
-	\end{equation}
-
-	Here because of the absence of interaction, the relation between energy and magnetisation is simple, and we have
-	\begin{equation} \label{eq:MagnetisationNoInteraction}
-		M \equiv \langle \sum_i s_i \rangle = -\frac{E}{h} = N \tanh(\beta h)
-	\end{equation}
 
 	\subsection{1D Ising Model without external field ($h=0$)}
 
@@ -376,6 +339,11 @@
 			E &= - \frac{\partial \ln{Z}}{\partial \beta} = -N\frac{\partial \ln{\lambda}}{\partial \beta}
 		\end{split}
 	\end{equation}
+
+	\subsection{Metropolis-Hastings Algorithm}
+	
+	
+	
 	\section{Implementation}
 	
 	The first step was to create a grid of spins. We chose to have the spins randomly distributed but with a bias towards the "up" direction. This ensured the magnetisation, which is sensitive to initial conditions, approached the same average each time.\\
@@ -407,6 +375,9 @@
 		\end{enumerate}
 		\item There is also a set maximum iterations $N_\text{max}$ to ensure the algorithm doesn't continue ad infinitum.
 	\end{itemize}
+
+	-How heat capacity gradient is calculated from energy values
+	-Optimisations
 	
 	\section{Results}
 	
@@ -438,6 +409,12 @@
 			\begin{center}
 				\begin{tikzpicture}
 					\begin{axis}[width=\textwidth, height=0.8\textwidth, xlabel=$k_BT$, ylabel=$M/N$]
+						\addplot [mark size=0pt,blue] table[
+						col sep=comma,
+						x=temp,
+						y=magnetisation]
+						{csv/onsager-magnetisation.csv};
+						
 						\addplot [mark=*,mark size=0.5pt,black] table[
 						col sep=comma,
 						x=temp,
@@ -476,6 +453,9 @@
 	\end{figure}
 	
 	From these results we can see that they closely follow the exact solution, indicating that using a Metropolis-Hastings algorithm is a valid method for predicting the behaviours of the model. The results for heat capacity don't have the same sharp peak as the exact solution. Since this peak tends to infinity in the exact solution, our value is limited by both the resolution of temperature values we were using in our simulation and the size of the grid.
+	
+	- Different magnetic fields
+	- 3D case?
 	
 	\section{Conclusion}
 	
