@@ -11,7 +11,11 @@
 \usepackage{tikz}
 \usepackage{pgfplots}
 \usepackage{hyperref}
+\usepackage{subcaption}
+
 \bibliographystyle{ieeetr}
+\usepackage{bibentry}
+\nobibliography*
 
 \newcommand{\vd}{\mathrm{d}} %Vertical d (for derivatives)
 
@@ -31,10 +35,10 @@
 		\end{center}
 		
 		{\Large \textbf{Abstract}}\\[0.3cm]
-		The goal of this project was to use a Metropolis-Hastings algorithm, a type of Markov chain Monte Carlo method, to simulate the Ising model for ferromagnetism. In two dimensions, an exact analytic solution exists\cite{onsager_solution} that shows a phase transition at the critical temperature $T_c$. We wrote a computer simulation that implements a Metropolis-Hastings algorithm to find the average energy, heat capacity and magnetisation as a function of temperature. \\
+		The goal of this project was to use a Metropolis-Hastings algorithm, a type of Markov chain Monte Carlo method, to simulate the Ising model for ferromagnetism. In two dimensions, an exact analytic solution exists\cite{onsager_solution} that shows a phase transition at some critical temperature $T_c$. We wrote a computer simulation that implements a Metropolis-Hastings algorithm to find the average energy, heat capacity and magnetisation as a function of temperature. Comparing our results in two dimensions to the analytic solution, we found them to closely match. We then extended our simulation to cases for which there is no known exact solution such as the two dimensional Ising model with an external magnetic field and the three dimensional case.
 		
-		How our results it fits with the predictions of the model
-		
+		\vfill
+		[1] \bibentry{onsager_solution}
 	\end{titlepage}
 	
 	\pagenumbering{gobble}
@@ -46,80 +50,39 @@
 	
 	\section{Introduction}
 	
-	The Ising model is a simple model of ferromagnetism, consisting of a lattice of atomic spins that can either be "up" or "down". These spins only interact with their nearest neighbours, and with any external magnetic field. The system "prefers" to be in its lowest energy state (all spins aligned), however this average energy will increase with temperature due to the random energy transfers from the surroundings. There exists an exact analytic solution to the model in two dimensions\cite{onsager_solution}, found by Lars Onsager in 1944; in three dimensions there have been many attempts at a solution\cite{das1970exact}\cite{lou2000three}\cite{zhang2007conjectures}\cite{zhang2021exact} but each has been shown to have errors. Instead, we used numerical methods to solve the model for the temperature dependence of energy, magnetisation and heat capacity.
+	The Ising model is a simple model of ferromagnetism, consisting of a lattice of atomic spins that can either be "up" or "down". These spins only interact with their nearest neighbours, and with any external magnetic field. The system "prefers" to be in its lowest energy state (all spins aligned), however this average energy will increase with temperature due to the random energy transfers from the surroundings. There exists an exact analytic solution to the model in two dimensions (for zero magnetic field)\cite{onsager_solution}, found by Lars Onsager in 1944; in three dimensions there have been many attempts at a solution\cite{das1970exact, lou2000three, zhang2007conjectures, zhang2021exact} but each has been shown to have errors. Instead, we used numerical methods to solve the model for the temperature dependence of energy, magnetisation and heat capacity. This allows the model to be trivially extended to solve for cases such as an external magnetic field and in three dimensions.
 	
 	\section{Theory}
 	
-	For a set of $N$ spins $\left\{s_i\right\}_{i=1}^N$, where the spin is $+1$ for "up" and $-1$ for "down", the total energy of the system $E$ is given by\cite{Baierlein_1999}
+	For a set of $N$ spins $\left\{s_i\right\}_{i=1}^N$ arranged in a lattice, where the spin is $+1$ for "up" and $-1$ for "down", the total energy of the system $E$ is given by\cite{Baierlein_1999}
 	\begin{equation}
-		E = -J\sum_{\left<i,j\right>}s_is_j - h\sum_i s_i,
+		E\left(\left\{s_i\right\}\right) = -J\sum_{\left<i,j\right>}s_is_j - h\sum_i s_i,
 	\end{equation}
-	where $J$ is the interaction strength between adjacent spins, $h$ is the strength of the external magnetic field and $\displaystyle\sum_{\left<i,j\right>}$ indicates the sum over all nearest neighbours $j$ of the $i$th spin. Some simplifications have been made as in principle $J$ could not be constant \\
+	where $J$ is the interaction strength between adjacent spins, $h$ is the strength of the external magnetic field and $\sum_{\left<i,j\right>}$ indicates the sum over all nearest neighbours $j$ of the $i$th spin. Some simplifications have been made as in principle $J$ could not be constant. \\
 	
-	Our calculation and simulation will be dealt in the canonical ensemble, where the temperature $T$ is fixed.
-
-	By now, we have encountered every ingredient of the Ising model: 
-	shape of the lattice $\langle i,j \rangle$, interaction strength $J$, external magnetic field $h$, and temperature $T$.
-	
-	Given these, we can calculate the partition function of the system, which is the key to all thermodynamic properties.
+	We will be dealing with the canonical ensemble, where the temperature is fixed. The key to solving the model is its partition function $Z$ given by
 	\begin{equation} \label{eq:PartitionFunction}
-		Z = \sum_{\{s_i\}} e^{-\beta H(\{s_i\})}, \quad \beta = \frac{1}{k_B T}
+		Z = \sum_{\{s_i\}} e^{-\beta E(\{s_i\})},
 	\end{equation}
-	The canonical ensemble assigns a probability to each state $\{s_i\}$ given by
+	where $\sum_{\{s_i\}}$ indicates the sum over all possible sets of $N$ spins and $\beta = \frac{1}{k_B T}$, where $k_B$ is the Boltzmann constant and $T$ is the temperature. The canonical ensemble assigns a probability to each possible state $\{s_i\}$ of
 	\begin{equation} \label{eq:Probability}
-		P(\{s_i\}) = \frac{e^{-\beta H(\{s_i\})}}{Z}
-	\end{equation}
-	As you can see, states with lower energy are more likely to be found.
-
-	Then we can discuss the meaning of $J$ and $h$.
-	\begin{itemize}
-		\item If $J > 0$, neighbours with parallel spins have lower energy, so the system tends to be aligned, which is called ferromagnetic.
-		\item If $J < 0$, neighbouring spins tend to be antiparallel, which is called anti-ferromagnetic.
-	\end{itemize}
-	\begin{itemize}
-		\item If $h > 0$, spins prefer to be $s_i = +1$.
-		\item If $h < 0$, spins prefer to be $s_i = -1$.
-	\end{itemize}
-	We can see that spins tend to align with the magnetic field, which is called paramagnetic.
-
-	% (Briefly mention the concept of phase transitions. Add or not?)
-
-	In the following of the theory section, we will start from some simple cases, and then generalize to more complex ones.
-
-	\subsection{Ising Model without interaction ($J=0$)}
-
-	When there is no interaction between spins, the shape of the lattice doesn't matter at all, and the Hamiltonian becomes
-	\begin{equation} \label{eq:HamiltonianNoInteraction}
-		H(\{s_i\}) = -h \sum_i s_i
-	\end{equation}
-	which is simply the energy of a collection of spins in a magnetic field.
-
-	Then the partition function is
-	\begin{equation} \label{eq:PartitionFunctionNoInteraction}
-		\begin{aligned}
-			Z &= \sum_{\{s_i\}} e^{-\beta H(\{s_i\})} = \sum_{\{s_i\}} e^{\beta h \sum_i s_i} = \prod_i \sum_{s_i=\pm1} e^{\beta h s_i} \\
-			&= \prod_i (e^{\beta h} + e^{-\beta h}) = (e^{\beta h} + e^{-\beta h})^N = (2\cosh(\beta h))^N
-		\end{aligned}
+		P(\{s_i\}) = \frac{e^{-\beta E(\{s_i\})}}{Z}
 	\end{equation}
 
-	The energy of the system can be calculated as
-	\begin{equation} \label{eq:EnergyNoInteraction}
-		E \equiv \langle H \rangle = -\frac{\partial}{\partial \beta} \ln Z = - N h \tanh(\beta h)
+	\subsection{One Dimension}
+	
+	In one dimension, the model can be solved in relatively few steps. In this case, the energy of the system for $N$ spins in a line becomes
+	\begin{equation}
+		E(\{s_i\}) = -J \sum_{i=1}^{N-1} s_i s_{i+1} -h\sum_{i=1}^N s_i.
+	\end{equation}
+	Alternatively, periodic boundary conditions can be applied so that $s_{N+1} = s_1$. This is advantageous as every spin then has the same behaviour, and in the limit of $N \to \infty$ this is equivalent. In this case, the energy of the system becomes
+	\begin{equation} \label{eq:Energy1D}
+		E(\{s_i\}) = -J \sum_{i=1}^{N} s_i s_{i+1} -h\sum_{i=1}^N s_i.
 	\end{equation}
 
-	Here because of the absence of interaction, the relation between energy and magnetisation is simple, and we have
-	\begin{equation} \label{eq:MagnetisationNoInteraction}
-		M \equiv \langle \sum_i s_i \rangle = -\frac{E}{h} = N \tanh(\beta h)
-	\end{equation}
-
-	\subsection{1D Ising Model without external field ($h=0$)}
-
-	% (To be added: a figure)
-
-	In this case, the Hamiltonian becomes
-	\begin{equation} \label{eq:Hamiltonian1DNoField}
-		H(\{s_i\}) = -J \sum_{i=1}^{N-1} s_i s_{i+1}
-	\end{equation}
+	This can be solved by introducing a new variable $p_i = s_is_{i + 1}$.\\
+	
+	.............................
 
 	The interaction makes it difficult to calculate the partition function, 
 	but considering what we have done for the 1D Ising model without interaction, 
@@ -383,11 +346,10 @@
 			E &= - \frac{\partial \ln{Z}}{\partial \beta} = -N\frac{\partial \ln{\lambda}}{\partial \beta}
 		\end{split}
 	\end{equation}
-	\section{Implementation}
+
+	\subsection{Metropolis-Hastings Algorithm}
+	\label{metropolis_algorithm}
 	
-	The first step was to create a grid of spins. We chose to have the spins randomly distributed but with a bias towards the "up" direction. This ensured the magnetisation, which is sensitive to initial conditions, approached the same average each time.\\
-	
-	The basic algorithm that is then used is:
 	\begin{enumerate}
 		\item Choose a spin at random from the grid.
 		\item Calculate the energy change $\Delta E$ if this spin were to flip.
@@ -395,57 +357,115 @@
 		\item Repeat this process.
 	\end{enumerate}
 	
-	Starting in two dimensions, we ran some initial tests of the model to observe the behaviour of the spins as the algorithm iterates, as shown in figure \ref{fig:ising_grid}. This nicely demonstrates the tendency for groups of aligned spins to form.
+	\section{Implementation}
+	
+	The first step was to create a grid of spins. We chose to have the spins randomly distributed but with a bias towards the "up" direction. This ensured the magnetisation, which is sensitive to initial conditions, approached the same average each time.\\
+	
+	The next step is then to repeatedly apply the algorithm described in section \ref{metropolis_algorithm}. Starting in two dimensions, we ran some initial tests of the model to observe the behaviour of the spins as the algorithm iterates, as shown in figure \ref{fig:ising_grid}. This nicely demonstrates the tendency for groups of aligned spins to form.
 	\begin{figure}[H]
 		\begin{center}
 			\includegraphics[width=0.5\textwidth]{./img/ising-simulation.png}
 		\end{center}
-		\caption{A two-dimensional Ising Model simulation on a $500\times 500$ grid with parameters $J = 1.0$, $\beta = 1.0$ and $h = 0$. The two colours correspond to the two different values of spin.}
+		\caption{A two-dimensional Ising Model simulation on a $500\times 500$ grid with parameters $\beta = 1.0$ and $h = 0$. The two colours correspond to the two different values of spin.}
 		\label{fig:ising_grid}
 	\end{figure}
 	
-	In order to find the temperature dependence of the energy, magnetisation and heat capacity, we needed to run the same simulation for a number of different values of $\beta$. Each simulation needs to be run for a sufficient number of iterations such that it reaches equilibrium. Our stopping condition was the following:
+	In order to find the temperature dependence of the energy, magnetisation and heat capacity, we needed to run the same simulation for a number of different values of $\beta$. Each simulation needs to be run for a sufficient number of iterations such that its mean values reach equilibrium. The energy and magnetisation will continue to change, but the average should approach a specific value. To test for this, we applied the following stopping condition:
 	\begin{itemize}
 		\item For each block of $n$ iterations:
 		\begin{enumerate}
-			\item Calculate the mean of the current block.
-			\item Compare the change of the mean value from the current block to that of the previous block.
-			\item If the mean has changed by less than three times the standard deviation of the mean $\displaystyle\left(\frac{\sigma}{\sqrt{n}}\right)$, it is considered to be at equilibrium and the simulation stops.
+			\item Calculate the mean energy and magnetisation values for the current block.
+			\item Compare the change of these mean values from the current block to those of the previous block.
+			\item If both values have changed by less than three times the standard deviation of the mean $\displaystyle\left(\frac{\sigma}{\sqrt{n}}\right)$, it is considered to be at equilibrium and the simulation stops.
 		\end{enumerate}
 		\item There is also a set maximum iterations $N_\text{max}$ to ensure the algorithm doesn't continue ad infinitum.
 	\end{itemize}
+	It is important to ensure the block size $n$ is large enough that the probability of the stopping condition triggering erroneously is minimised. \\
+	
+	Once the simulation has finished for the range of temperature values, the calculated energy and magnetisation along with their respective temperatures are recorded in a CSV file. From the energy data, the heat capacity values can be calculated using $C_V = \frac{\partial E}{\partial T}$. To calculate this gradient, a least-square fit was used along small intervals of energy values in order to estimate the gradient. This reduces errors from random variations in the calculated energy values.
 	
 	\section{Results}
 	
-	After running the algorithm described above for a grid size of $1000 \times 1000$, for values of $k_B T$ between $0.0001$ and $4.0\;\mathrm{J}$, we obtained the data shown in figure [].
+	First, we ran a 2D simulation with grid size $1000 \times 1000$ and no external magnetic field, obtaining the results shown in figure \ref{fig:2d_1000_result}.
 	\begin{figure}[H]
-		\begin{center}
-			\begin{tikzpicture}
-				\begin{axis}[width=0.8\textwidth, height=0.5\textwidth, xlabel=$k_BT$, ylabel=$E/N$]
-					\addplot [mark size=0pt,blue] table[
-					col sep=comma,
-					x=temp,
-					y=energy]
-					{csv/onsager-energy.csv};
-					
-					\addplot [mark=*,mark size=0.5pt,black] table[
-					col sep=comma,
-					x=temp,
-					y=energy,
-					only marks]
-					{csv/energy-1000.csv};
-				\end{axis}
-			\end{tikzpicture}
-		\end{center}
-		\caption{A plot of the average energy per particle against $k_BT$. The blue line is the solution obtained from the Onsager solution, and the black points are the data calculated by our simulation.}
+		\begin{subfigure}{\textwidth}
+			\begin{center}
+				\begin{tikzpicture}
+					\begin{axis}[width=0.8\textwidth, height=0.5\textwidth, xlabel=$k_BT$, ylabel=$E/N$]
+						\addplot [mark size=0pt,blue] table[
+						col sep=comma,
+						x=temp,
+						y=energy]
+						{csv/onsager-energy.csv};
+						
+						\addplot [mark=*,mark size=0.5pt,black] table[
+						col sep=comma,
+						x=temp,
+						y=energy,
+						only marks]
+						{csv/energy-1000.csv};
+					\end{axis}
+				\end{tikzpicture}
+			\end{center}
+			\caption{A plot showing average energy per particle against $k_BT$.}
+		\end{subfigure}
+	
+		\begin{subfigure}{0.45\textwidth}
+			\begin{center}
+				\begin{tikzpicture}
+					\begin{axis}[width=\textwidth, height=0.8\textwidth, xlabel=$k_BT$, ylabel=$M/N$]
+						\addplot [mark size=0pt,blue] table[
+						col sep=comma,
+						x=temp,
+						y=magnetisation]
+						{csv/onsager-magnetisation.csv};
+						
+						\addplot [mark=*,mark size=0.5pt,black] table[
+						col sep=comma,
+						x=temp,
+						y=magnetisation,
+						only marks]
+						{csv/magnetisation-1000.csv};
+					\end{axis}
+				\end{tikzpicture}
+			\end{center}
+			\caption{A plot showing average magnetisation per particle against $k_BT$.}
+		\end{subfigure}
+		\begin{subfigure}{0.45\textwidth}
+			\begin{center}
+				\begin{tikzpicture}
+					\begin{axis}[width=\textwidth, height=0.8\textwidth, xlabel=$k_BT$, ylabel=$C_V/N$]
+						\addplot [mark size=0pt,blue] table[
+						col sep=comma,
+						x=temp,
+						y=heat-cap]
+						{csv/onsager-heat-cap.csv};
+						
+						\addplot [mark=*,mark size=0.5pt,black] table[
+						col sep=comma,
+						x=temp,
+						y=heat-cap,
+						only marks]
+						{csv/heat-cap-1000.csv};
+					\end{axis}
+				\end{tikzpicture}
+			\end{center}
+			\caption{A plot showing average heat capacity per particle against $k_BT$.}
+		\end{subfigure}
+	
+		\caption{Plots of data from a 2D Ising model simulation with grid size $1000 \times 1000$ and no external magnetic field. In each plot, the blue line is the expected result using Onsager's solution, and the black points are the data calculated by our simulation.}
+		\label{fig:2d_1000_result}
 	\end{figure}
+	
+	From these results we can see that they closely follow the exact solution, indicating that using a Metropolis-Hastings algorithm is a valid method for predicting the behaviours of the model. The results for heat capacity don't have the same sharp peak as the exact solution. Since this peak tends to infinity in the exact solution, our value is limited by both the resolution of temperature values we were using in our simulation and the size of the grid.
+	
+	- Different magnetic fields
+	- 3D case?
 	
 	\section{Conclusion}
 	
 	Conclude results.
-	
-	\newpage
+		
 	\bibliography{references} 
-	\bibliographystyle{ieeetr}
 
 \end{document}

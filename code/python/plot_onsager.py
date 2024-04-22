@@ -8,9 +8,11 @@ from scipy.misc import derivative
 INTERACTION_STRENGTH = 1.0
 START_TEMP = 0.1
 END_TEMP = 4.0
-TEMP_COUNT = 500
+TEMP_COUNT = 10000
 GRID_COUNT = 10
 OUTPUT_FILE = "./onsager-energy.csv"
+OUTPUT_HEAT = "./onsager-heat-cap.csv"
+KB = 1.38e-23
 
 def Integrand(K2, w):
   return np.log(0.5 * (1.0 + np.sqrt(1.0 - K2 * np.square(np.sin(w)))))
@@ -25,13 +27,27 @@ def CalcLogLambda(beta):
 
   return logLambda
 
+def DLogLambda(x):
+  return derivative(CalcLogLambda, x, dx=1e-10)
+
+heatOut = "temp,heat-cap\n"
 output = "temp,energy\n"
 for tempIndex in range(TEMP_COUNT):
   currentTemp = START_TEMP + (END_TEMP - START_TEMP) * (float(tempIndex) / (TEMP_COUNT - 1))
-  energy = -derivative(CalcLogLambda, 1.0 / currentTemp, dx=1e-8)
+  nextTemp = START_TEMP + (END_TEMP - START_TEMP) * (float(tempIndex + 1) / (TEMP_COUNT - 1))
+
+  energy = -DLogLambda(1.0/currentTemp)
+  nextEnergy = -DLogLambda(1.0/nextTemp)
+
+  heatCap = (nextEnergy - energy) / (nextTemp - currentTemp)
 
   output += str(currentTemp) + "," + str(energy) + "\n"
+  heatOut += str(currentTemp) + "," + str(heatCap) + "\n"
 
 fileBuff = open(OUTPUT_FILE, 'w')
 fileBuff.write(output)
+fileBuff.close()
+
+fileBuff = open(OUTPUT_HEAT, 'w')
+fileBuff.write(heatOut)
 fileBuff.close()
