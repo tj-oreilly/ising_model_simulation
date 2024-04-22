@@ -12,7 +12,7 @@
 //#define _DEBUG
 #define THREADED
 #define GRID_2D
-#define GRID_3D
+//#define GRID_3D
 
 typedef std::basic_string<wchar_t> wstring;
 typedef long long Int;
@@ -23,12 +23,12 @@ typedef double Float;
 constexpr Int GRID_SIZE = 100;				//Size of grid to generate
 constexpr Int TEMP_COUNT = 50;				//Number of temperature readings to take
 constexpr Float TEMP_MIN = 1e-6;			//Minimum value for kBT
-constexpr Float TEMP_MAX = 20.0;			//Maximum value for kBT
+constexpr Float TEMP_MAX = 4.0;			//Maximum value for kBT
 constexpr Int MAX_ITER_COUNT = 1000000000;		//Maximum iterations to run for each temperature
 constexpr Int ITER_AVG = 1000000;					//Saved energy is averaged over the last n iterations
 constexpr Int SAMPLE_GAP = 1000;				//Gap between samples for calculating the mean (reduces speed loss from mean check)
 constexpr Int STD_DEV_COUNT = 2;			//Standard deviations for fluctuations to be considered at equilibrium.
-constexpr Float MAGNETIC_FIELD = 1.0; //Magnetic field strength
+constexpr Float MAGNETIC_FIELD = 0.0; //Magnetic field strength
 constexpr std::array<int8_t, 10> SPIN_OPTIONS = { -1, -1, 1, 1, 1, 1, 1, 1, 1, 1 }; //Distribution of spins to use (biased one way)
 
 struct ModelData
@@ -124,7 +124,8 @@ Float sqr(Float x)
 /// @param buffer 
 /// @param mean 
 /// @param stdDevSq 
-void CalculateMeanStdDev(const cqueue<Float>& buffer, Float& mean, Float& stdDevSq)
+template <typename T>
+void CalculateMeanStdDev(const cqueue<T>& buffer, Float& mean, Float& stdDevSq)
 {
 	mean = 0.0;
 	Float meanSq = 0.0;
@@ -162,8 +163,8 @@ void EnergyThread(SpinGrid& grid, Int tempNum, std::vector<ModelData>& energyVal
 
 	cqueue<Float> energyBuff(buffSize); //energy
 	cqueue<int64_t> magnetisationBuff(buffSize);
-	Float lastMean = 0.0;
-	Float lastStdDev = 0.0; //Square std dev avoids need for sqrt
+	Float lastMean = 0.0, lastMeanMag = 0.0;
+	Float lastStdDev = 0.0, lastStdDevMag = 0.0; //Square std dev avoids need for sqrt
 
 	//Iterations
 	for (Int i = 0; i < MAX_ITER_COUNT; ++i)
@@ -182,10 +183,15 @@ void EnergyThread(SpinGrid& grid, Int tempNum, std::vector<ModelData>& energyVal
 			Float mean, stdDev;
 			CalculateMeanStdDev(energyBuff, mean, stdDev);
 
+			Float meanMag, stdDevMag;
+			CalculateMeanStdDev(magnetisationBuff, meanMag, stdDevMag);
+
 			if (i > 0)
 			{
 				const Float devLimit = STD_DEV_COUNT * (lastStdDev / sqrt(buffSize));
-				if (abs(lastMean - mean) <= devLimit)
+				const Float devLimitMag = STD_DEV_COUNT * (lastStdDev / sqrt(buffSize));
+
+				if (abs(lastMean - mean) <= devLimit && abs(lastMeanMag - meanMag) <= devLimitMag)
 				{
 					std::cout << "Exit early, " + std::to_string(i) + " iterations\n";
 					break;
@@ -193,7 +199,9 @@ void EnergyThread(SpinGrid& grid, Int tempNum, std::vector<ModelData>& energyVal
 			}
 			
 			lastMean = mean;
+			lastMeanMag = meanMag;
 			lastStdDev = stdDev;
+			lastStdDevMag = stdDevMag;
 		}
 	}
 
