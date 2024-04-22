@@ -437,4 +437,5 @@ FodyWeavers.xsd
 *.sln.iml
 *.blg
 *.bbl
-*.bbl
+*.bcf
+*.xml
