@@ -32,7 +32,7 @@
 		\end{center}
 		
 		{\Large \textbf{Abstract}}\\[0.3cm]
-		The goal of this project was to use a Metropolis-Hastings algorithm, a type of Markov chain Monte Carlo method, to simulate the Ising model for ferromagnetism. In two dimensions, an exact analytic solution exists\cite{onsager_solution} that shows a phase transition at some critical temperature $T_c$. We wrote a computer simulation that implements a Metropolis-Hastings algorithm to find the average energy, heat capacity and magnetisation as a function of temperature. We compared our results in two dimensions to the analytic solution and found them to closely match. We then extended our simulation to three dimensions for which no analytic solution has yet been found.
+		The goal of this project was to use a Metropolis-Hastings algorithm, a type of Markov chain Monte Carlo method, to simulate the Ising model for ferromagnetism. In two dimensions, an exact analytic solution exists\cite{onsager_solution} that shows a phase transition at some critical temperature $T_c$. We wrote a computer simulation that implements a Metropolis-Hastings algorithm to find the average energy, heat capacity and magnetisation as a function of temperature. We compared our results in two dimensions to the analytic solution and found them to closely match. We then extended our simulation to cases for which there is no known exact solution such as the two dimensional Ising model with an external magnetic field and the three dimensional case.
 	\end{titlepage}
 	
 	\pagenumbering{gobble}
@@ -62,48 +62,11 @@
 	\begin{equation} \label{eq:Probability}
 		P(\{s_i\}) = \frac{e^{-\beta H(\{s_i\})}}{Z}
 	\end{equation}
-	As you can see, states with lower energy are more likely to be found.
-
-	Then we can discuss the meaning of $J$ and $h$.
-	\begin{itemize}
-		\item If $J > 0$, neighbours with parallel spins have lower energy, so the system tends to be aligned, which is called ferromagnetic.
-		\item If $J < 0$, neighbouring spins tend to be antiparallel, which is called anti-ferromagnetic.
-	\end{itemize}
-	\begin{itemize}
-		\item If $h > 0$, spins prefer to be $s_i = +1$.
-		\item If $h < 0$, spins prefer to be $s_i = -1$.
-	\end{itemize}
-	We can see that spins tend to align with the magnetic field, which is called paramagnetic.
+	As you can see, states with lower energy are more likely to be found. We can see that spins tend to align with the magnetic field, which is called paramagnetic.
 
 	% (Briefly mention the concept of phase transitions. Add or not?)
 
 	In the following of the theory section, we will start from some simple cases, and then generalize to more complex ones.
-
-	\subsection{Ising Model without interaction ($J=0$)}
-
-	When there is no interaction between spins, the shape of the lattice doesn't matter at all, and the Hamiltonian becomes
-	\begin{equation} \label{eq:HamiltonianNoInteraction}
-		H(\{s_i\}) = -h \sum_i s_i
-	\end{equation}
-	which is simply the energy of a collection of spins in a magnetic field.
-
-	Then the partition function is
-	\begin{equation} \label{eq:PartitionFunctionNoInteraction}
-		\begin{aligned}
-			Z &= \sum_{\{s_i\}} e^{-\beta H(\{s_i\})} = \sum_{\{s_i\}} e^{\beta h \sum_i s_i} = \prod_i \sum_{s_i=\pm1} e^{\beta h s_i} \\
-			&= \prod_i (e^{\beta h} + e^{-\beta h}) = (e^{\beta h} + e^{-\beta h})^N = (2\cosh(\beta h))^N
-		\end{aligned}
-	\end{equation}
-
-	The energy of the system can be calculated as
-	\begin{equation} \label{eq:EnergyNoInteraction}
-		E \equiv \langle H \rangle = -\frac{\partial}{\partial \beta} \ln Z = - N h \tanh(\beta h)
-	\end{equation}
-
-	Here because of the absence of interaction, the relation between energy and magnetisation is simple, and we have
-	\begin{equation} \label{eq:MagnetisationNoInteraction}
-		M \equiv \langle \sum_i s_i \rangle = -\frac{E}{h} = N \tanh(\beta h)
-	\end{equation}
 
 	\subsection{1D Ising Model without external field ($h=0$)}
 
@@ -266,10 +229,102 @@
 
 	\subsection{2D Ising Model}
 	
-	\subsubsection*{Onsager's Solution}
+	Onsager solved the 2D Ising model for the case of $h = 0$ in 1944\cite{onsager_solution},
+	but solution for $h \neq 0$ is still yet to be found.
+	He used transfer matrix method, like what we have done in the 1D case, but much more complicated.
+	Several years later, a combinatorial method was developed by Kac and Ward\cite{KacWard1952}, 
+	which is much simpler than the transfer matrix method, but still involves great details.
+	We will only present a method to calculate the critical temperature $T_{cr}$ due to Kramers and Wannier\cite{KramersWannier1941},
+	and then we will give the partition function and energy without proof.
+
+	By definition, the partition function of a 2D Ising model is
+	\begin{equation} \label{eq:PartitionFunction2D}
+		Z = \sum_{\{s_i\}} \prod_{\langle i,j \rangle} e^{\beta J s_i s_j}
+	\end{equation}
+	It's easy to see that if the sign of $J$ is changed, the partition function remains the same.
+	Thus, we can set $J > 0$ without loss of generality.
+	% Not quite easy to see. Consider flipping every other spin, but this requires $N$ to be even under PBC.
+	% Maybe it doesn't matter when $N$ is big enough.
+
+	Since $s_i s_j = \pm 1$, we have
+	\begin{equation} \label{eq:PartitionFunction2DTransformingTrick}
+		\begin{aligned}
+			e^{\beta J s_i s_j} &= \cosh(\beta J) + s_i s_j \sinh(\beta J) \\
+			&= \cosh(\beta J)(1 + s_i s_j \tanh(\beta J))
+		\end{aligned}
+	\end{equation}
+
+	There are $2N$ pairs of nearest neighbours $\langle i,j \rangle$ in a 2D lattice with $N$ spins.
+	Let $t = \tanh(\beta J)$, and let's try to expand the product in equation \eqref{eq:PartitionFunction2D}.
+	Take each term after expansion as a graph $G = (V, E)$ (so there are $2^{2N}$ graphs in total), 
+	where $V$ is the set of spins, 
+	and $E$ is the set of $\langle i,j \rangle$ pairs which contribute $t s_i s_j$ to the product.
+	Then we have
+	\begin{equation} \label{eq:PartitionFunction2DTransformed}
+		\begin{aligned}
+			Z &= \sum_{\{s_i\}} \prod_{\langle i,j \rangle} \cosh(\beta J)(1 + t s_i s_j) \\
+			&= \cosh^{2N}(\beta J) \sum_{\{s_i\}} \sum_{G\ with\ |E|=L} t^L \prod_{\langle i,j \rangle \in E} s_i s_j \\
+			&= \cosh^{2N}(\beta J) \sum_{G\ with\ |E|=L} t^L \sum_{\{s_i\}} \prod_{\langle i,j \rangle \in E} s_i s_j \\
+			&= 2^N \cosh^{2N}(\beta J) \sum_{L} t^L f(L)
+		\end{aligned}
+	\end{equation}
+	where $f(L)$ is the number of "closed graphs" with $L$ edges.
+	Here we define a closed graph as a graph with an even number of edges being incident to each vertex, 
+	which means that the sum $\sum_{\{s_i\}} \prod_{\langle i,j \rangle \in E} s_i s_j$ is not $0$ but $2^N$.
+
+	Now our task has been simplified into calculating $f(L)$.
+	Given a closed graph on a 2D lattice, we can always define "inside" and "outside" of the graph.
+	Label the midpoints of the lattice to be $x_i=+1$ if they are inside the graph, and $x_i=-1$ if outside.
+	Then link each pair of nearest neighbours $x_i=+1$ and $x_j=-1$ by an edge, 
+	and we will get a new graph $G'$ with $L$ edges.
+	For each edge in $G$, there is one and only one edge in $G'$ intersecting it.
+
+	% (To be added: a figure)
+
+	If we take the new graph $G'$ as a lattice with a set of spins $\{x_i\}$, 
+	strength of interaction $J$, and $\beta'$ representing the temperature,
+	then the partition function of such a lattice defined by $G'$ is
+	\begin{equation} \label{eq:PartitionFunction2DNewLattice}
+		\begin{aligned}
+			Z' &= \sum_{\{x_i\}} \prod_{\langle i,j \rangle} e^{\beta' J x_i x_j} \\
+			&= \sum_{\{x_i\}} e^{-L\beta' J} \cdot e^{(2N-L)\beta' J} g(L) \\
+			&= e^{2N\beta' J} \sum_{L} e^{-2L\beta' J} g(L)
+		\end{aligned}
+	\end{equation}
+	where $g(L)$ is the number of ways to arrange $L$ edges in graph $G'$, 
+	which means the number of ways to arrange $L$ pairs of nearest neighbours $x_i=+1$ and $x_j=-1$.
 	
-	Source\cite{onsager_solution}
-	
+	Considering the correspondence between $G$ and $G'$, we have $f(L) = g(L)$.
+	Let $e^{-2\beta' J} = t$, remembering that $t = \tanh(\beta J)$.
+	Join equations \eqref{eq:PartitionFunction2DTransformed} and \eqref{eq:PartitionFunction2DNewLattice}
+	\begin{equation} \label{eq:PartitionFunction2DComparison}
+		Z = 2^N \cosh^{2N}(\beta J) \tanh^{-N}(\beta J) Z'
+	\end{equation}
+
+	Now let's take $Z$ as a function of $\beta$, and $Z'$ as a function of $\beta'$.
+	When $\beta$ is finite, $\beta' J = -\frac12 \ln{\tanh(\beta J)}$ is also finite.
+	From equation \eqref{eq:PartitionFunction2DComparison}, we can see that 
+	if $Z(\beta)$ has a singularity at $\beta = \beta_{cr}$, 
+	then $Z'(\beta')$ has a singularity at $\beta' = \beta'_{cr}$.
+	If we assume that there is only one critical temperature $T_{cr}$, 
+	which means only one singularity, we will get
+	\begin{equation} \label{eq:Singularity}
+		\beta_{cr} = \beta'_{cr}
+	\end{equation}
+
+	Solution to equation \eqref{eq:CriticalTemperature} yeilds the critical temperature
+	\begin{equation} \label{eq:CriticalTemperature}
+		k_B T_{cr} = \frac{2}{\ln(1+\sqrt{2})}J \approx 2.269J
+	\end{equation}
+
+	We have found $T_{cr}$ of the 2D Ising model, but if we want to calculate the partition function,
+	we still need to figure out $f(L)$, which is a combinatorial problem.
+	You can refer to Feynman's book\cite{feynman1972statistical} for more details.
+
+	The results we are listing below are obtained from the Onsager solution\cite{onsager_solution}.
+	Let $\lambda$ be the maximum eigenvalue of transfer matrix $P$, like in the 1D case.
+	Then when $N$ is large, the partition function is
+
 	\begin{equation}
 		\begin{split}
 			Z &= \lambda^N \\
@@ -281,9 +336,13 @@
 	Energy:
 	\begin{equation}
 		\begin{split}
-			\left<E\right> &= - \frac{\partial \ln{Z}}{\partial \beta} = -N\frac{\partial \ln{\lambda}}{\partial \beta}
+			E &= - \frac{\partial \ln{Z}}{\partial \beta} = -N\frac{\partial \ln{\lambda}}{\partial \beta}
 		\end{split}
 	\end{equation}
+
+	\subsection{Metropolis-Hastings Algorithm}
+	
+	
 	
 	\section{Implementation}
 	
@@ -316,6 +375,9 @@
 		\end{enumerate}
 		\item There is also a set maximum iterations $N_\text{max}$ to ensure the algorithm doesn't continue ad infinitum.
 	\end{itemize}
+
+	-How heat capacity gradient is calculated from energy values
+	-Optimisations
 	
 	\section{Results}
 	
@@ -347,6 +409,12 @@
 			\begin{center}
 				\begin{tikzpicture}
 					\begin{axis}[width=\textwidth, height=0.8\textwidth, xlabel=$k_BT$, ylabel=$M/N$]
+						\addplot [mark size=0pt,blue] table[
+						col sep=comma,
+						x=temp,
+						y=magnetisation]
+						{csv/onsager-magnetisation.csv};
+						
 						\addplot [mark=*,mark size=0.5pt,black] table[
 						col sep=comma,
 						x=temp,
@@ -385,6 +453,9 @@
 	\end{figure}
 	
 	From these results we can see that they closely follow the exact solution, indicating that using a Metropolis-Hastings algorithm is a valid method for predicting the behaviours of the model. The results for heat capacity don't have the same sharp peak as the exact solution. Since this peak tends to infinity in the exact solution, our value is limited by both the resolution of temperature values we were using in our simulation and the size of the grid.
+	
+	- Different magnetic fields
+	- 3D case?
 	
 	\section{Conclusion}
 	

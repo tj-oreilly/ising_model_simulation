@@ -11,6 +11,8 @@
 
 //#define _DEBUG
 #define THREADED
+#define GRID_2D
+//#define GRID_3D
 
 typedef std::basic_string<wchar_t> wstring;
 typedef long long Int;
@@ -18,15 +20,14 @@ typedef unsigned long long UInt;
 typedef double Float;
 
 //Constants
-constexpr Int GRID_SIZE = 1000;				//Size of grid to generate
-constexpr Int TEMP_COUNT = 500;				//Number of temperature readings to take
+constexpr Int GRID_SIZE = 100;				//Size of grid to generate
+constexpr Int TEMP_COUNT = 50;				//Number of temperature readings to take
 constexpr Float TEMP_MIN = 1e-6;			//Minimum value for kBT
 constexpr Float TEMP_MAX = 4.0;			//Maximum value for kBT
-constexpr Int MAX_ITER_COUNT = 1000000000000;		//Maximum iterations to run for each temperature
+constexpr Int MAX_ITER_COUNT = 1000000000;		//Maximum iterations to run for each temperature
 constexpr Int ITER_AVG = 1000000;					//Saved energy is averaged over the last n iterations
 constexpr Int SAMPLE_GAP = 1000;				//Gap between samples for calculating the mean (reduces speed loss from mean check)
 constexpr Int STD_DEV_COUNT = 2;			//Standard deviations for fluctuations to be considered at equilibrium.
-constexpr Int GRAD_AVG = 10;          //Points to average over for the gradient calculation (heat capacity)
 constexpr Float MAGNETIC_FIELD = 0.0; //Magnetic field strength
 constexpr std::array<int8_t, 10> SPIN_OPTIONS = { -1, -1, 1, 1, 1, 1, 1, 1, 1, 1 }; //Distribution of spins to use (biased one way)
 
@@ -102,12 +103,15 @@ void GenRandomSpins(std::vector<int8_t>& spins, uint64_t seed)
 	Random64 rnd;
 	rnd.Init(seed);
 
-	for (Int x = 0; x < GRID_SIZE; ++x)
+#ifdef GRID_2D
+	Int count = pow(GRID_SIZE, 2);
+#elif
+	Int count = pow(GRID_SIZE, 3);
+#endif
+
+	for (Int i = 0; i < count; ++i)
 	{
-		for (Int y = 0; y < GRID_SIZE; ++y)
-		{
-			spins[x * GRID_SIZE + y] = SPIN_OPTIONS[rnd.GetRandInt(0, SPIN_OPTIONS.size())];;
-		}
+		spins[i] = SPIN_OPTIONS[rnd.GetRandInt(0, SPIN_OPTIONS.size())];
 	}
 }
 
@@ -120,7 +124,8 @@ Float sqr(Float x)
 /// @param buffer 
 /// @param mean 
 /// @param stdDevSq 
-void CalculateMeanStdDev(const cqueue<Float>& buffer, Float& mean, Float& stdDevSq)
+template <typename T>
+void CalculateMeanStdDev(const cqueue<T>& buffer, Float& mean, Float& stdDevSq)
 {
 	mean = 0.0;
 	Float meanSq = 0.0;
@@ -158,8 +163,8 @@ void EnergyThread(SpinGrid& grid, Int tempNum, std::vector<ModelData>& energyVal
 
 	cqueue<Float> energyBuff(buffSize); //energy
 	cqueue<int64_t> magnetisationBuff(buffSize);
-	Float lastMean = 0.0;
-	Float lastStdDev = 0.0; //Square std dev avoids need for sqrt
+	Float lastMean = 0.0, lastMeanMag = 0.0;
+	Float lastStdDev = 0.0, lastStdDevMag = 0.0; //Square std dev avoids need for sqrt
 
 	//Iterations
 	for (Int i = 0; i < MAX_ITER_COUNT; ++i)
@@ -178,10 +183,15 @@ void EnergyThread(SpinGrid& grid, Int tempNum, std::vector<ModelData>& energyVal
 			Float mean, stdDev;
 			CalculateMeanStdDev(energyBuff, mean, stdDev);
 
+			Float meanMag, stdDevMag;
+			CalculateMeanStdDev(magnetisationBuff, meanMag, stdDevMag);
+
 			if (i > 0)
 			{
 				const Float devLimit = STD_DEV_COUNT * (lastStdDev / sqrt(buffSize));
-				if (abs(lastMean - mean) <= devLimit)
+				const Float devLimitMag = STD_DEV_COUNT * (lastStdDev / sqrt(buffSize));
+
+				if (abs(lastMean - mean) <= devLimit && abs(lastMeanMag - meanMag) <= devLimitMag)
 				{
 					std::cout << "Exit early, " + std::to_string(i) + " iterations\n";
 					break;
@@ -189,7 +199,9 @@ void EnergyThread(SpinGrid& grid, Int tempNum, std::vector<ModelData>& energyVal
 			}
 			
 			lastMean = mean;
+			lastMeanMag = meanMag;
 			lastStdDev = stdDev;
+			lastStdDevMag = stdDevMag;
 		}
 	}
 
@@ -235,11 +247,22 @@ void CalculateEnergyValues(uint64_t seed, const std::vector<int8_t>& initialSpin
 	const UInt threadCount = std::thread::hardware_concurrency();
 
 	//Initialise SpinGrid instance for each thread
-	std::vector<SpinGrid> gridArray;
+#ifdef GRID_2D
+	std::vector<SpinGrid2D> gridArray;
+#elif GRID_3D
+	std::vector<SpinGrid2D> gridArray;
+#endif
+
 	gridArray.reserve(threadCount);
 
 	for (UInt i = 0; i < threadCount; ++i)
-		gridArray.push_back(SpinGrid(GRID_SIZE, GRID_SIZE, seed + (i+1), MAGNETIC_FIELD));
+	{
+#ifdef GRID_2D
+		gridArray.push_back(SpinGrid2D(GRID_SIZE, GRID_SIZE, seed + (i + 1), MAGNETIC_FIELD));
+#elif GRID_3D
+		gridArray.push_back(SpinGrid3D(GRID_SIZE, GRID_SIZE, GRID_SIZE, seed + (i + 1), MAGNETIC_FIELD));
+#endif
+	}
 
 	//Split temps by thread num
 	const Int perThread = (Int)std::ceil(Float(TEMP_COUNT) / threadCount);
@@ -304,51 +327,6 @@ void WriteEnergiesToFile(const std::vector<ModelData>& energies, const wstring& 
 	fileStream.close();
 }
 
-void WriteHeatCapToFile(const std::vector<ModelData>& energies, const wstring& dest)
-{
-	if (dest == L"")
-		return;
-
-	//Calculate heat capacities
-	std::vector<Float> heatCapacities(energies.size());
-	Float gradient = 0.0;
-	int8_t count = 0;
-
-	for (Int energyIndex = 0; energyIndex < energies.size(); ++energyIndex)
-	{
-		gradient = 0.0;
-		count = 0;
-
-		//Take average either side
-		for (Int i = energyIndex - 1; i > max(0, energyIndex - GRAD_AVG / 2); --i)
-		{
-			gradient += (energies[i + 1].energy - energies[i].energy) / (energies[i + 1].temp - energies[i].temp);
-			++count;
-		}
-		for (Int i = energyIndex + 1; i < min(energies.size(), energyIndex + GRAD_AVG / 2); ++i)
-		{
-			gradient += (energies[i].energy - energies[i - 1].energy) / (energies[i].temp - energies[i - 1].temp);
-			++count;
-		}
-
-		if (count != 0)
-			heatCapacities[energyIndex] = gradient / count;
-	}
-
-	//Write to file
-	std::ofstream fileStream;
-	fileStream.open(dest);
-
-	fileStream << "temp,heat-cap\n";
-
-	for (Int energyIndex = 0; energyIndex < energies.size(); ++energyIndex)
-	{
-		fileStream << (std::to_string(energies[energyIndex].temp) + "," + std::to_string(heatCapacities[energyIndex]) + "\n");
-	}
-
-	fileStream.close();
-}
-
 void WriteMagnetisationToFile(const std::vector<ModelData>& energies, const wstring& dest)
 {
   if (dest == L"")
@@ -377,13 +355,17 @@ int main(int argc, char* argv[])
 
   //Get file names
   const wstring energyCsvFile = FileSave(L"Choose energy CSV file");
-  const wstring heatCsvFile = FileSave(L"Choose heat capacity CSV file");
   const wstring magnetisationCsvFile = FileSave(L"Choose magnetisation CSV file");
 
   const uint64_t seed = std::time(nullptr); //Use time as base seed
 
   //Generate random spin arrangement
+#ifdef GRID_2D
   std::vector<int8_t> randomSpins(GRID_SIZE*GRID_SIZE);
+#elif GRID_3D
+	std::vector<int8_t> randomSpins(GRID_SIZE * GRID_SIZE * GRID_SIZE);
+#endif
+
   GenRandomSpins(randomSpins, seed + 1);
     
   //Main execution
@@ -392,7 +374,6 @@ int main(int argc, char* argv[])
 
   //Write to CSV files
   WriteEnergiesToFile(energies, energyCsvFile);
-  WriteHeatCapToFile(energies, heatCsvFile);
   WriteMagnetisationToFile(energies, magnetisationCsvFile);
 
   return 0;
