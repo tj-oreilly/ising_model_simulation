@@ -50,7 +50,7 @@
 	
 	\section{Introduction}
 	
-	The Ising model is a simple model of ferromagnetism, consisting of a lattice of atomic spins that can either be "up" or "down". These spins only interact with their nearest neighbours, and with any external magnetic field. The system "prefers" to be in its lowest energy state (all spins aligned), however this average energy will increase with temperature due to the random energy transfers from the surroundings. There exists an exact analytic solution to the model in two dimensions (for zero magnetic field)\cite{onsager_solution}, found by Lars Onsager in 1944; in three dimensions there have been many attempts at a solution\cite{das1970exact, lou2000three, zhang2007conjectures, zhang2021exact} but each has been shown to have errors. Instead, we used numerical methods to solve the model for the temperature dependence of energy, magnetisation and heat capacity. This allows the model to be trivially extended to solve for cases such as an external magnetic field and in three dimensions.
+	The Ising model is a simple model of ferromagnetism, consisting of a lattice of atomic spins that can either be "up" or "down". These spins only interact with their nearest neighbours, and with any external magnetic field. The system "prefers" to be in its lowest energy state (all spins aligned), however this average energy will increase with temperature due to the random energy transfers from the surroundings. There exists an exact analytic solution to the model in two dimensions with zero magnetic field\cite{onsager_solution}, found by Lars Onsager in 1944; in three dimensions there have been many attempts at a solution\cite{das1970exact, lou2000three, zhang2007conjectures, zhang2021exact} but each has been shown to have errors. Instead, we used numerical methods to solve the model for the temperature dependence of energy, magnetisation and heat capacity. This allows the model to be trivially extended to solve for cases such as an external magnetic field and in three dimensions.
 	
 	\section{Theory}
 	
@@ -382,7 +382,7 @@
 	\end{itemize}
 	It is important to ensure the block size $n$ is large enough that the probability of the stopping condition triggering erroneously is minimised. \\
 	
-	Once the simulation has finished for the range of temperature values, the calculated energy and magnetisation along with their respective temperatures are recorded in a CSV file. From the energy data, the heat capacity values can be calculated using $C_V = \frac{\partial E}{\partial T}$. To calculate this gradient, a least-square fit was used along small intervals of energy values in order to estimate the gradient. This reduces errors from random variations in the calculated energy values.
+	Once the simulation has finished for the range of temperature values, the calculated energy and magnetisation along with their respective temperatures are recorded in a CSV file. From the energy data, the heat capacity values can be calculated using $C_V = \frac{\partial E}{\partial T}$. To calculate this gradient, a least-square fit was used along small intervals of energy values, in order to estimate the gradient. This reduces errors from random variations in the calculated energy values.
 	
 	\section{Results}
 	
@@ -391,7 +391,7 @@
 		\begin{subfigure}{\textwidth}
 			\begin{center}
 				\begin{tikzpicture}
-					\begin{axis}[width=0.8\textwidth, height=0.5\textwidth, xlabel=$k_BT$, ylabel=$E/N$]
+					\begin{axis}[width=0.78\textwidth, height=0.47\textwidth, xlabel=$k_BT$, ylabel=$E/N$]
 						\addplot [mark size=0pt,blue] table[
 						col sep=comma,
 						x=temp,
@@ -409,7 +409,8 @@
 			\end{center}
 			\caption{A plot showing average energy per particle against $k_BT$.}
 		\end{subfigure}
-	
+	\end{figure}
+	\begin{figure}[H]\ContinuedFloat
 		\begin{subfigure}{0.45\textwidth}
 			\begin{center}
 				\begin{tikzpicture}
@@ -457,14 +458,68 @@
 		\label{fig:2d_1000_result}
 	\end{figure}
 	
-	From these results we can see that they closely follow the exact solution, indicating that using a Metropolis-Hastings algorithm is a valid method for predicting the behaviours of the model. The results for heat capacity don't have the same sharp peak as the exact solution. Since this peak tends to infinity in the exact solution, our value is limited by both the resolution of temperature values we were using in our simulation and the size of the grid.
+	From these results we can see that they closely follow the exact solution, indicating that using a Metropolis-Hastings algorithm is a successful method for predicting the behaviours of the model. The results for heat capacity don't have the same sharp peak as the exact solution. Since this peak tends to infinity in the exact solution, our value is limited by both the resolution of temperature values we were using in our simulation and the size of the grid. 
 	
-	- Different magnetic fields
-	- 3D case?
+	\subsection{Two-dimensional Model with External Magnetic Field}
+	
+	Onsager's solution does not work if there is an external magnetic field present. We tested a range of values $-2.0 \leq h \leq 2.0$ to see the effect an external magnetic field has on the temperature dependence of energy and magnetisation. These results are shown in figure \ref{fig:2d_mag_results}.
+	\begin{figure}[H]
+		\begin{center}
+			\begin{tikzpicture}
+				\begin{axis}[width=0.8\textwidth, height=0.5\textwidth, xlabel=$k_BT$, ylabel=$M/N$]
+					\addplot [mark=*,mark size=0.5pt,red] table[
+					col sep=comma,
+					x=temp,
+					y=magnetisation,
+					only marks]
+					{csv/mag/magnetisation(-2).csv};
+					
+					\addplot [mark=*,mark size=0.5pt,orange] table[
+					col sep=comma,
+					x=temp,
+					y=magnetisation,
+					only marks]
+					{csv/mag/magnetisation(-1).csv};
+					
+					\addplot [mark=*,mark size=0.5pt,black] table[
+					col sep=comma,
+					x=temp,
+					y=magnetisation,
+					only marks]
+					{csv/mag/magnetisation(-0).csv};
+					
+					\addplot [mark=*,mark size=0.5pt,black] table[
+					col sep=comma,
+					x=temp,
+					y=magnetisation,
+					only marks]
+					{csv/mag/magnetisation(0).csv};
+					
+					\addplot [mark=*,mark size=0.5pt,green] table[
+					col sep=comma,
+					x=temp,
+					y=magnetisation,
+					only marks]
+					{csv/mag/magnetisation(1).csv};
+					
+					\addplot [mark=*,mark size=0.5pt,blue] table[
+					col sep=comma,
+					x=temp,
+					y=magnetisation,
+					only marks]
+					{csv/mag/magnetisation(2).csv};
+				\end{axis}
+			\end{tikzpicture}
+		\end{center}
+		\caption{Average magnetisation per particle against $k_BT$ for different values of external magnetic field $h$. For $h=0$ both positive and negative magnetisation are shown as they are both equally likely.}
+		\label{fig:2d_mag_results}
+	\end{figure}
+	
+	\subsection{Three-dimensional Model}
 	
 	\section{Conclusion}
 	
-	Conclude results.
+	In conclusion, while exact analytic solutions exist for some cases of the Ising model, using a Monte Carlo simulation to solve for its behaviours is both simpler and more easily extended. 
 		
 	\bibliography{references} 
 
