@@ -198,7 +198,13 @@
 
 	Now our task has been simplified into calculating $f(L)$. Given a closed graph on a 2D lattice, we can always define "inside" and "outside" of the graph. Label the midpoints of the lattice to be $x_i=+1$ if they are inside the graph, and $x_i=-1$ if outside. Then link each pair of nearest neighbours $x_i=+1$ and $x_j=-1$ by an edge, and we will get a new graph $G'$ with $L$ edges. For each edge in $G$, there is one and only one edge in $G'$ intersecting it.
 
-	% (To be added: a figure)
+	\begin{figure}[H]
+		\begin{center}
+			\includegraphics[width=0.5\textwidth]{./img/ising-graph.png}
+		\end{center}
+		\caption{An example of a closed graph $G$ in black and the corresponding graph $G'$ in red.}
+		\label{fig:ising_graph}
+	\end{figure}
 
 	If we take the new graph $G'$ as a lattice with a set of spins $\{x_i\}$, strength of interaction $J$, and $\beta'$ representing the temperature, then the partition function of such a lattice defined by $G'$ is
 	\begin{equation} \label{eq:PartitionFunction2DNewLattice}
