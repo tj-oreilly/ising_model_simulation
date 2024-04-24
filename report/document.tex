@@ -12,12 +12,14 @@
 \usepackage{pgfplots}
 \usepackage{hyperref}
 \usepackage{subcaption}
+\usepackage{bm}
 
 \bibliographystyle{ieeetr}
 \usepackage{bibentry}
 \nobibliography*
 
 \newcommand{\vd}{\mathrm{d}} %Vertical d (for derivatives)
+\newcommand{\bmat}[1]{\bm{\mathrm{#1}}}
 
 \begin{document}
 	\pagenumbering{arabic}
@@ -75,37 +77,29 @@
 	\begin{equation}
 		H(\{s_i\}) = -J \sum_{i=1}^{N-1} s_i s_{i+1} -h\sum_{i=1}^N s_i.
 	\end{equation}
-	Alternatively, periodic boundary conditions can be applied so that $s_{N+1} = s_1$. This is advantageous as every spin then has the same behaviour, and in the limit of $N \to \infty$ this is equivalent. Our discussions and simulations below will be based on periodic boundary conditions. In this case, the energy of the system becomes
+	To simplify, we will apply periodic boundary conditions (such that $s_{N+1} = s_1$). This is advantageous as every spin then has the same behaviour, and in the limit of $N \to \infty$ this is an equivalent formulation. Our discussions and simulations below will be based on periodic boundary conditions. The energy of the system now becomes
 	\begin{equation} \label{eq:Energy1D}
 		H(\{s_i\}) = -J \sum_{i=1}^{N} s_i s_{i+1} -h\sum_{i=1}^N s_i.
 	\end{equation}
-
-	Define a transfer matrix $P$
+	The partition function will then be
+	\begin{equation}
+		\begin{split}
+			Z &= \sum_{\left\{s_i\right\}} \exp{\left(\beta \sum_i Js_is_{i+1} + \frac12 h(s_i + s_{i+1})\right)}, \\
+			&= \sum_{\left\{s_i\right\}} \prod_{i=1}^N \exp{\left(\beta \left(Js_is_{i+1} + \frac12 h(s_i + s_{i+1})\right)\right)}.
+		\end{split}
+	\end{equation}
+	This is written in terms of the energy per connection which is the reason for the factor $\frac12$ in the magnetic field contribution. We now define a matrix $\bmat{P}$ such that
 	\begin{equation} \label{eq:MatrixP}
-		P = \begin{pmatrix}
+		\bmat{P} = \begin{pmatrix}
 			e^{\beta(J+h)} & e^{-\beta J} \\
 			e^{-\beta J} & e^{\beta(J-h)}
-		\end{pmatrix}
+		\end{pmatrix}.
 	\end{equation}
-
-	Suppose that the first row and column of $P$ represent a state $s = +1$, while the second row and column represent another state $s = -1$. We can write down the elements of $P$ as
-	\begin{equation} \label{eq:MatrixPElements}
-		P_{+,+} = e^{\beta(J+h)}, \quad P_{+,-} = P_{-,+} = e^{-\beta J}, \quad P_{-,-} = e^{\beta(J-h)}
-	\end{equation}
-
-	The contribution of the connection between two spins to the partition function is
-	\begin{equation} \label{eq:PartitionFunction1DGeneral2SpinsConnection}
-		P_{s_i, s_{i+1}} = e^{\beta(J s_i s_{i+1} + \frac12h(s_i + s_{i+1}))}
-	\end{equation}
-	The factor $\frac12$ here is because each spin will be counted twice in two connections it has.
-
-	We can write down the partition function of the 1D Ising model spins as
+	This encodes the contribution to the partition function for the four combinations of the values for $s_i$ and $s_{i+1}$ (i.e. $\mathrm{P}_{11}$ for $(+1,\;+1)$, $\mathrm{P}_{12}$ for $(+1, -1)$, etc.). This allows us to write the partition function in terms of this matrix
 	\begin{equation} \label{eq:PartitionFunction1DGeneral}
-		\begin{aligned}
-			Z &= \sum_{\{s_i\}} e^{-\beta H(\{s_i\})} = \sum_{\{s_i\}} \prod_{i=1}^{N} e^{\beta(J s_i s_{i+1} + \frac12h(s_i + s_{i+1}))} \\
-			&= \sum_{\{s_i\}} \prod_{i=1}^{N} P_{s_i, s_{i+1}} = \mathrm{Tr}(P^N) \\
-		\end{aligned}
+		Z = \sum_{\{s_i\}} \prod_{i=1}^{N} \mathrm{P}_{s_i, s_{i+1}} = \mathrm{Tr}(\bmat{P}^N),
 	\end{equation}
+	where $\mathrm{Tr}$ denotes the trace of the matrix.
 
 	Now our task is simplified into calculating the trace of the $N$-th power of a $2 \times 2$ matrix $P$. Mathematicians have already solved this problem by diagonalizing the matrix
 	\begin{equation} \label{eq:MatrixPDiagonal}
