@@ -80,26 +80,13 @@
 		H(\{s_i\}) = -J \sum_{i=1}^{N} s_i s_{i+1} -h\sum_{i=1}^N s_i.
 	\end{equation}
 
-	Before dealing with such a relatively complicated system, let's consider a simple Ising model with only two spins. The Hamiltonian is
-	\begin{equation} \label{eq:Hamiltonian1DGeneral2Spins}
-		H(s_1, s_2) = -J s_1 s_2 - J s_2 s_1 - hs_1 - hs_2
-	\end{equation}
-
-	Define a matrix $P$, we can see why we need it later.
+	Define a transfer matrix $P$
 	\begin{equation} \label{eq:MatrixP}
 		P = \begin{pmatrix}
 			e^{\beta(J+h)} & e^{-\beta J} \\
 			e^{-\beta J} & e^{\beta(J-h)}
 		\end{pmatrix}
 	\end{equation}
-
-	Then the partition function is
-	\begin{equation} \label{eq:PartitionFunction1DGeneral2Spins}
-		Z = \sum_{s_1, s_2} e^{-\beta H(s_1, s_2)} = \mathrm{Tr}(P \cdot P)
-	\end{equation}
-	Here $\mathrm{Tr}$ denotes the trace of a matrix.
-
-	One can easily verify the above result by expanding the matrix product, but may be curious about why we need such a matrix $P$. Actually, the matrix $P$ indicates the "connection" between the two spins.
 
 	Suppose that the first row and column of $P$ represent a state $s = +1$, while the second row and column represent another state $s = -1$. We can write down the elements of $P$ as
 	\begin{equation} \label{eq:MatrixPElements}
@@ -108,21 +95,11 @@
 
 	The contribution of the connection between two spins to the partition function is
 	\begin{equation} \label{eq:PartitionFunction1DGeneral2SpinsConnection}
-		P_{s_1, s_2} = e^{\beta(J s_1 s_2 + \frac12h(s_1 + s_2))}
+		P_{s_i, s_{i+1}} = e^{\beta(J s_i s_{i+1} + \frac12h(s_i + s_{i+1}))}
 	\end{equation}
 	The factor $\frac12$ here is because each spin will be counted twice in two connections it has.
 
-	We can write down the partition function of such a system with $2$ spins as
-	\begin{equation} \label{eq:PartitionFunction1DGeneral2SpinsConnectionSum}
-		\begin{aligned}
-		Z &= \sum_{s_1, s_2} e^{-\beta H(s_1, s_2)} = \sum_{s_1, s_2} e^{\beta(2J s_1 s_2 + h(s_1 + s_2))} \\
-		&= \sum_{s_1, s_2} e^{\beta(J s_1 s_2 + \frac12h(s_1 + s_2))} \cdot e^{\beta(J s_1 s_2 + \frac12h(s_1 + s_2))} \\
-		&= \sum_{s_1, s_2} P_{s_1, s_2} \cdot P_{s_2, s_1} \\
-		&= \mathrm{Tr}(P \cdot P)
-		\end{aligned}
-	\end{equation}
-
-	It's easy to generalize the result to a system with $N$ spins.
+	We can write down the partition function of the 1D Ising model spins as
 	\begin{equation} \label{eq:PartitionFunction1DGeneral}
 		\begin{aligned}
 			Z &= \sum_{\{s_i\}} e^{-\beta H(\{s_i\})} = \sum_{\{s_i\}} \prod_{i=1}^{N} e^{\beta(J s_i s_{i+1} + \frac12h(s_i + s_{i+1}))} \\
@@ -134,16 +111,11 @@
 	\begin{equation} \label{eq:MatrixPDiagonal}
 		P = U \cdot D \cdot U^\dagger
 	\end{equation}
-	Here $U$ is a unitary matrix, which means $U^\dagger U = I$, and $D$ is a diagonal matrix. It has been proven that such diagonalization is always possible for a Hermitian matrix like $P$.
+	Here $U$ is a unitary matrix, which means $U^\dagger U = I$, and $D = \mathrm{diag}(\lambda_+, \lambda_-)$ is a diagonal matrix. It has been proven that such diagonalization is always possible for a Hermitian matrix like $P$.
 
-	We only care about the trace of $P^N$
+	What we care about is just the trace of $P^N$
 	\begin{equation} \label{eq:MatrixPNTrace}
-		\mathrm{Tr}(P^N) = \mathrm{Tr}(U \cdot D^N \cdot U^\dagger) = \mathrm{Tr}(D^N)
-	\end{equation}
-
-	For a diagonal matrix $D = \mathrm{diag}(\lambda_+, \lambda_-)$, its $N$-th power is also a diagonal matrix $D^N = \mathrm{diag}(\lambda_+^N, \lambda_-^N)$. Thus, we have
-	\begin{equation} \label{eq:MatrixPNTraceDiagonal}
-		\mathrm{Tr}(P^N) = \lambda_+^N + \lambda_-^N
+		\mathrm{Tr}(P^N) = \mathrm{Tr}(U \cdot D^N \cdot U^\dagger) = \mathrm{Tr}(D^N) = \lambda_+^N + \lambda_-^N
 	\end{equation}
 
 	Now we only need to find $\lambda_\pm$, which are the eigenvalues of $P$. I used Mathematica to calculate them, and the result is
@@ -324,7 +296,7 @@
 		\begin{subfigure}{\textwidth}
 			\begin{center}
 				\begin{tikzpicture}
-					\begin{axis}[width=0.8\textwidth, height=0.5\textwidth, xlabel=$k_BT$, ylabel=$E/N$]
+					\begin{axis}[width=0.8\textwidth, height=0.5\textwidth, xlabel=$k_BT/J$, ylabel=$E/N$]
 						\addplot [mark size=0pt,blue] table[
 						col sep=comma,
 						x=temp,
@@ -346,7 +318,7 @@
 		\begin{subfigure}{0.45\textwidth}
 			\begin{center}
 				\begin{tikzpicture}
-					\begin{axis}[width=\textwidth, height=0.8\textwidth, xlabel=$k_BT$, ylabel=$M/N$]
+					\begin{axis}[width=\textwidth, height=0.8\textwidth, xlabel=$k_BT/J$, ylabel=$M/N$]
 						\addplot [mark size=0pt,blue] table[
 						col sep=comma,
 						x=temp,
@@ -367,7 +339,7 @@
 		\begin{subfigure}{0.45\textwidth}
 			\begin{center}
 				\begin{tikzpicture}
-					\begin{axis}[width=\textwidth, height=0.8\textwidth, xlabel=$k_BT$, ylabel=$C_V/N$]
+					\begin{axis}[width=\textwidth, height=0.8\textwidth, xlabel=$k_BT/J$, ylabel=$C_V/N$]
 						\addplot [mark size=0pt,blue] table[
 						col sep=comma,
 						x=temp,
