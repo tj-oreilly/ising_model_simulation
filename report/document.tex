@@ -54,75 +54,33 @@
 	
 	\section{Theory}
 	
-	For a set of $N$ spins $\left\{s_i\right\}_{i=1}^N$ arranged in a lattice, where the spin is $+1$ for "up" and $-1$ for "down", the total energy of the system $E$ is given by\cite{Baierlein_1999}
+	For a set of $N$ spins $\left\{s_i\right\}_{i=1}^N$ arranged in a lattice, where the spin is $+1$ for "up" and $-1$ for "down", the Hamiltonian (or energy)	of the system $H$ is given by\cite{Baierlein_1999} % use $H$ to avoid confusion with the average energy $E$
 	\begin{equation}
-		E\left(\left\{s_i\right\}\right) = -J\sum_{\left<i,j\right>}s_is_j - h\sum_i s_i,
+		H\left(\left\{s_i\right\}\right) = -J\sum_{\left<i,j\right>}s_is_j - h\sum_i s_i,
 	\end{equation}
 	where $J$ is the interaction strength between adjacent spins, $h$ is the strength of the external magnetic field and $\sum_{\left<i,j\right>}$ indicates the sum over all nearest neighbours $j$ of the $i$th spin. Some simplifications have been made as in principle $J$ could not be constant. \\
 	
 	We will be dealing with the canonical ensemble, where the temperature is fixed. The key to solving the model is its partition function $Z$ given by
 	\begin{equation} \label{eq:PartitionFunction}
-		Z = \sum_{\{s_i\}} e^{-\beta E(\{s_i\})},
+		Z = \sum_{\{s_i\}} e^{-\beta H(\{s_i\})},
 	\end{equation}
 	where $\sum_{\{s_i\}}$ indicates the sum over all possible sets of $N$ spins and $\beta = \frac{1}{k_B T}$, where $k_B$ is the Boltzmann constant and $T$ is the temperature. The canonical ensemble assigns a probability to each possible state $\{s_i\}$ of
 	\begin{equation} \label{eq:Probability}
-		P(\{s_i\}) = \frac{e^{-\beta E(\{s_i\})}}{Z}
+		P(\{s_i\}) = \frac{e^{-\beta H(\{s_i\})}}{Z}
 	\end{equation}
 
 	\subsection{One Dimension}
 	
-	In one dimension, the model can be solved in relatively few steps. In this case, the energy of the system for $N$ spins in a line becomes
+	In one dimension, the model can be solved in relatively few steps. In this case, the Hamiltonian of the system for $N$ spins in a line becomes
 	\begin{equation}
-		E(\{s_i\}) = -J \sum_{i=1}^{N-1} s_i s_{i+1} -h\sum_{i=1}^N s_i.
+		H(\{s_i\}) = -J \sum_{i=1}^{N-1} s_i s_{i+1} -h\sum_{i=1}^N s_i.
 	\end{equation}
-	Alternatively, periodic boundary conditions can be applied so that $s_{N+1} = s_1$. This is advantageous as every spin then has the same behaviour, and in the limit of $N \to \infty$ this is equivalent. In this case, the energy of the system becomes
+	Alternatively, periodic boundary conditions can be applied so that $s_{N+1} = s_1$. This is advantageous as every spin then has the same behaviour, and in the limit of $N \to \infty$ this is equivalent. Our discussions and simulations below will be based on periodic boundary conditions. In this case, the energy of the system becomes
 	\begin{equation} \label{eq:Energy1D}
-		E(\{s_i\}) = -J \sum_{i=1}^{N} s_i s_{i+1} -h\sum_{i=1}^N s_i.
+		H(\{s_i\}) = -J \sum_{i=1}^{N} s_i s_{i+1} -h\sum_{i=1}^N s_i.
 	\end{equation}
 
-	This can be solved by introducing a new variable $p_i = s_is_{i + 1}$.\\
-	
-	.............................
-
-	The interaction makes it difficult to calculate the partition function, 
-	but considering what we have done for the 1D Ising model without interaction, 
-	we can transform the case into a non-interacting one by introducing some new variables $p_i = s_i s_{i+1}$.
-	Here $\{s_1, s_2, \cdots, s_N\}$ and $\{s_1, p_1, p_2, \cdots, p_{N-1}\}$ are equivalent descriptions of the system.
-	The inverse transform is simply $s_i = s_1 \prod_{j=1}^{i-1} p_j$.
-	Then the Hamiltonian becomes
-	\begin{equation} \label{eq:Hamiltonian1DNoFieldTransformed}
-		H(s_1, \{p_i\}) = -J \sum_{i=1}^{N-1} p_i
-	\end{equation}
-
-	Applying the result of equation \ref{eq:PartitionFunctionNoInteraction}, we have the partition function
-	\begin{equation} \label{eq:PartitionFunction1DNoField}
-		\begin{aligned}
-			Z &= \sum_{s_1, \{p_i\}} e^{-\beta H(s_1, \{p_i\})} \\
-			&= 2(2\cosh(\beta J))^{N-1}
-		\end{aligned}
-	\end{equation}
-	The factor 2 comes from the two possible values of $s_1$.
-
-	The boundary conditions (B.C.) here needs to be specified.
-	Our discussion just now is based on free-end B.C., where the first and last spins are not connected.
-	Another common choice is periodic boundary conditions (PBC), which means $s_{N+1} = s_1$, and the Hamiltonian becomes
-	\begin{equation} \label{eq:Hamiltonian1DNoFieldPeriodic}
-		H(\{s_i\}) = -J \sum_{i=1}^{N} s_i s_{i+1}
-	\end{equation}
-
-	Similarly, we can transform $\{s_1, s_2, \cdots, s_N\}$ into $\{s_1, p_1, p_2, \cdots, p_{N-1}\}$, 
-	and calculate the partition function under PBC
-	\begin{equation} \label{eq:PartitionFunction1DNoFieldPeriodic}
-		Z = (2\cosh(\beta J))^N(1 + (\tanh(\beta J))^N)
-	\end{equation}
-
-	The advantage of PBC over free-end B.C. is that no spin is special.
-	When the lattice is large enough ($N \to \infty$), they show no difference.
-
-	\subsection{General 1D Ising model($J\neq0, h\neq0$)}
-
-	First, let's consider a simple Ising model with only two spins under PBC.
-	The Hamiltonian is
+	Before dealing with such a relatively complicated system, let's consider a simple Ising model with only two spins. The Hamiltonian is
 	\begin{equation} \label{eq:Hamiltonian1DGeneral2Spins}
 		H(s_1, s_2) = -J s_1 s_2 - J s_2 s_1 - hs_1 - hs_2
 	\end{equation}
@@ -141,13 +99,9 @@
 	\end{equation}
 	Here $\mathrm{Tr}$ denotes the trace of a matrix.
 
-	One can easily verify the above result by expanding the matrix product, 
-	but may be curious about why we need such a matrix $P$.
-	Actually, the matrix $P$ indicates the "connection" between the two spins.
+	One can easily verify the above result by expanding the matrix product, but may be curious about why we need such a matrix $P$. Actually, the matrix $P$ indicates the "connection" between the two spins.
 
-	Suppose that the first row and column of $P$ represent a state $s = +1$, 
-	while the second row and column represent another state $s = -1$.
-	We can write down the elements of $P$ as
+	Suppose that the first row and column of $P$ represent a state $s = +1$, while the second row and column represent another state $s = -1$. We can write down the elements of $P$ as
 	\begin{equation} \label{eq:MatrixPElements}
 		P_{+,+} = e^{\beta(J+h)}, \quad P_{+,-} = P_{-,+} = e^{-\beta J}, \quad P_{-,-} = e^{\beta(J-h)}
 	\end{equation}
@@ -176,37 +130,23 @@
 		\end{aligned}
 	\end{equation}
 
-	Now our task is simplified into calculating the trace of the $N$-th power of a $2 \times 2$ matrix $P$.
-	Mathematicians have already solved this problem by diagonalizing the matrix
+	Now our task is simplified into calculating the trace of the $N$-th power of a $2 \times 2$ matrix $P$. Mathematicians have already solved this problem by diagonalizing the matrix
 	\begin{equation} \label{eq:MatrixPDiagonal}
 		P = U \cdot D \cdot U^\dagger
 	\end{equation}
-	Here $U$ is a unitary matrix, which means $U^\dagger U = I$, and $D$ is a diagonal matrix.
-	It has been proven that such diagonalization is always possible for a Hermitian matrix like $P$.
-
-	Then the $N$-th power of $P$ is
-	\begin{equation} \label{eq:MatrixPN}
-		P^N = U \cdot D^N \cdot U^\dagger
-	\end{equation}
+	Here $U$ is a unitary matrix, which means $U^\dagger U = I$, and $D$ is a diagonal matrix. It has been proven that such diagonalization is always possible for a Hermitian matrix like $P$.
 
 	We only care about the trace of $P^N$
 	\begin{equation} \label{eq:MatrixPNTrace}
-		\begin{aligned}
-			\mathrm{Tr}(P^N) &= \mathrm{Tr}(U \cdot D^N \cdot U^\dagger) \\
-			&= \mathrm{Tr}((U \cdot D^N) \cdot U^\dagger) = \mathrm{Tr}(U^\dagger \cdot (U \cdot D^N)) \\
-			&= \mathrm{Tr}(D^N)
-		\end{aligned}
+		\mathrm{Tr}(P^N) = \mathrm{Tr}(U \cdot D^N \cdot U^\dagger) = \mathrm{Tr}(D^N)
 	\end{equation}
 
-	For a diagonal matrix $D = \mathrm{diag}(\lambda_+, \lambda_-)$, 
-	its $N$-th power is also a diagonal matrix $D^N = \mathrm{diag}(\lambda_+^N, \lambda_-^N)$.
-	Thus, we have
+	For a diagonal matrix $D = \mathrm{diag}(\lambda_+, \lambda_-)$, its $N$-th power is also a diagonal matrix $D^N = \mathrm{diag}(\lambda_+^N, \lambda_-^N)$. Thus, we have
 	\begin{equation} \label{eq:MatrixPNTraceDiagonal}
 		\mathrm{Tr}(P^N) = \lambda_+^N + \lambda_-^N
 	\end{equation}
 
-	Now we only need to find $\lambda_\pm$, which are the eigenvalues of $P$.
-	I used Mathematica to calculate them, and the result is
+	Now we only need to find $\lambda_\pm$, which are the eigenvalues of $P$. I used Mathematica to calculate them, and the result is
 	\begin{equation} \label{eq:MatrixPEigenvalues}
 		\lambda_\pm = e^{\beta J} \left[\cosh(\beta h) \pm \sqrt{e^{-4\beta J}+\sinh^2(\beta h)}\right]
 	\end{equation}
@@ -220,38 +160,22 @@
 		\end{aligned}
 	\end{equation}
 
-	Now we can make some discussions over this equation.
-	\begin{itemize}
-		\item When $J = 0$, equation \eqref{eq:PartitionFunction1DGeneralFinal} reduces to equation \eqref{eq:PartitionFunctionNoInteraction},
-			which is the partition function of a system without interaction.
-		\item We didn't provide the derivation of equation \eqref{eq:PartitionFunction1DNoFieldPeriodic} in section 2.2,
-			but now it can be obtained by setting $h = 0$ in equation \eqref{eq:PartitionFunction1DGeneralFinal}.
-		\item In the limit $N \to \infty$, we have $\lambda_+^N \gg \lambda_-^N$, and the partition function becomes
-			\begin{equation} \label{eq:PartitionFunction1DGeneralLimit}
-				Z \approx \lambda_+^N = e^{N \beta J} \left[\cosh(\beta h) + \sqrt{e^{-4\beta J}+\sinh^2(\beta h)}\right]^N
-			\end{equation}
-		It will be much easier for us to calculate energy $E$, heat capacity $C_V$, magnetisation $M$, 
-		and other thermodynamic properties under such approximation.
-	\end{itemize}
+	In the limit $N \to \infty$, we have $\lambda_+^N \gg \lambda_-^N$, and the partition function becomes
+		\begin{equation} \label{eq:PartitionFunction1DGeneralLimit}
+			Z \approx \lambda_+^N = e^{N \beta J} \left[\cosh(\beta h) + \sqrt{e^{-4\beta J}+\sinh^2(\beta h)}\right]^N
+		\end{equation}
+	It will be much easier for us to calculate energy $E$, heat capacity $C_V$, magnetisation $M$, and other thermodynamic properties under such approximation.
 
 	\subsection{2D Ising Model}
 	
-	Onsager solved the 2D Ising model for the case of $h = 0$ in 1944\cite{onsager_solution},
-	but solution for $h \neq 0$ is still yet to be found.
-	He used transfer matrix method, like what we have done in the 1D case, but much more complicated.
-	Several years later, a combinatorial method was developed by Kac and Ward\cite{KacWard1952}, 
-	which is much simpler than the transfer matrix method, but still involves great details.
-	We will only present a method to calculate the critical temperature $T_{cr}$ due to Kramers and Wannier\cite{KramersWannier1941},
-	and then we will give the partition function and energy without proof.
+	Onsager solved the 2D Ising model without external magnetic field ($h = 0$) in 1944\cite{onsager_solution}, but solution for $h \neq 0$ is still yet to be found. He used transfer matrix method, like what we have done in the 1D case, but much more complicated. Several years later, a combinatorial method was developed by Kac and Ward\cite{KacWard1952}, which is much simpler than the transfer matrix method, but still involves great details. We will only present a method to calculate the critical temperature $T_{cr}$ due to Kramers and Wannier\cite{KramersWannier1941}, and then we will give the partition function and energy without proof.
 
-	By definition, the partition function of a 2D Ising model is
+	By definition, the partition function of a 2D Ising model without external field is
 	\begin{equation} \label{eq:PartitionFunction2D}
 		Z = \sum_{\{s_i\}} \prod_{\langle i,j \rangle} e^{\beta J s_i s_j}
 	\end{equation}
-	It's easy to see that if the sign of $J$ is changed, the partition function remains the same.
-	Thus, we can set $J > 0$ without loss of generality.
-	% Not quite easy to see. Consider flipping every other spin, but this requires $N$ to be even under PBC.
-	% Maybe it doesn't matter when $N$ is big enough.
+	It's easy to see that if the sign of $J$ is changed, the partition function remains the same. Thus, we can set $J > 0$ without loss of generality.
+	% Not quite easy to see. Consider flipping every other spin, but this requires $N$ to be even under PBC. Maybe it doesn't matter when $N$ is big enough.
 
 	Since $s_i s_j = \pm 1$, we have
 	\begin{equation} \label{eq:PartitionFunction2DTransformingTrick}
@@ -261,36 +185,22 @@
 		\end{aligned}
 	\end{equation}
 
-	There are $2N$ pairs of nearest neighbours $\langle i,j \rangle$ in a 2D lattice with $N$ spins.
-	Let $t = \tanh(\beta J)$, and let's try to expand the product in equation \eqref{eq:PartitionFunction2D}.
-	Take each term after expansion as a graph $G = (V, E)$ (so there are $2^{2N}$ graphs in total), 
-	where $V$ is the set of spins, 
-	and $E$ is the set of $\langle i,j \rangle$ pairs which contribute $t s_i s_j$ to the product.
-	Then we have
+	There are $2N$ pairs of nearest neighbours $\langle i,j \rangle$ in a 2D lattice with $N$ spins. Let $t = \tanh(\beta J)$, and let's try to expand the product in equation \eqref{eq:PartitionFunction2D}. Take each term after expansion as a graph $G = (V, E)$ (so there are $2^{2N}$ graphs in total), where $V$ is the set of spins, and $E$ is the set of $\langle i,j \rangle$ pairs which contribute $t s_i s_j$ to the product. Then we have
 	\begin{equation} \label{eq:PartitionFunction2DTransformed}
 		\begin{aligned}
 			Z &= \sum_{\{s_i\}} \prod_{\langle i,j \rangle} \cosh(\beta J)(1 + t s_i s_j) \\
-			&= \cosh^{2N}(\beta J) \sum_{\{s_i\}} \sum_{G\ with\ |E|=L} t^L \prod_{\langle i,j \rangle \in E} s_i s_j \\
-			&= \cosh^{2N}(\beta J) \sum_{G\ with\ |E|=L} t^L \sum_{\{s_i\}} \prod_{\langle i,j \rangle \in E} s_i s_j \\
+			&= \cosh^{2N}(\beta J)\ \sum_{\{s_i\}}\ \sum_{G\ \text{with}\ |E|=L} t^L \prod_{\langle i,j \rangle \in E} s_i s_j \\
+			&= \cosh^{2N}(\beta J) \sum_{G\ \text{with}\ |E|=L} t^L \sum_{\{s_i\}} \prod_{\langle i,j \rangle \in E} s_i s_j \\
 			&= 2^N \cosh^{2N}(\beta J) \sum_{L} t^L f(L)
 		\end{aligned}
 	\end{equation}
-	where $f(L)$ is the number of "closed graphs" with $L$ edges.
-	Here we define a closed graph as a graph with an even number of edges being incident to each vertex, 
-	which means that the sum $\sum_{\{s_i\}} \prod_{\langle i,j \rangle \in E} s_i s_j$ is not $0$ but $2^N$.
+	where $f(L)$ is the number of "closed graphs" with $L$ edges. Here we define a closed graph as a graph with an even number of edges being incident to each vertex, which means that the sum $\sum_{\{s_i\}} \prod_{\langle i,j \rangle \in E} s_i s_j$ is not $0$ but $2^N$.
 
-	Now our task has been simplified into calculating $f(L)$.
-	Given a closed graph on a 2D lattice, we can always define "inside" and "outside" of the graph.
-	Label the midpoints of the lattice to be $x_i=+1$ if they are inside the graph, and $x_i=-1$ if outside.
-	Then link each pair of nearest neighbours $x_i=+1$ and $x_j=-1$ by an edge, 
-	and we will get a new graph $G'$ with $L$ edges.
-	For each edge in $G$, there is one and only one edge in $G'$ intersecting it.
+	Now our task has been simplified into calculating $f(L)$. Given a closed graph on a 2D lattice, we can always define "inside" and "outside" of the graph. Label the midpoints of the lattice to be $x_i=+1$ if they are inside the graph, and $x_i=-1$ if outside. Then link each pair of nearest neighbours $x_i=+1$ and $x_j=-1$ by an edge, and we will get a new graph $G'$ with $L$ edges. For each edge in $G$, there is one and only one edge in $G'$ intersecting it.
 
 	% (To be added: a figure)
 
-	If we take the new graph $G'$ as a lattice with a set of spins $\{x_i\}$, 
-	strength of interaction $J$, and $\beta'$ representing the temperature,
-	then the partition function of such a lattice defined by $G'$ is
+	If we take the new graph $G'$ as a lattice with a set of spins $\{x_i\}$, strength of interaction $J$, and $\beta'$ representing the temperature, then the partition function of such a lattice defined by $G'$ is
 	\begin{equation} \label{eq:PartitionFunction2DNewLattice}
 		\begin{aligned}
 			Z' &= \sum_{\{x_i\}} \prod_{\langle i,j \rangle} e^{\beta' J x_i x_j} \\
@@ -298,23 +208,15 @@
 			&= e^{2N\beta' J} \sum_{L} e^{-2L\beta' J} g(L)
 		\end{aligned}
 	\end{equation}
-	where $g(L)$ is the number of ways to arrange $L$ edges in graph $G'$, 
-	which means the number of ways to arrange $L$ pairs of nearest neighbours $x_i=+1$ and $x_j=-1$.
+	where $g(L)$ is the number of ways to arrange $L$ edges in graph $G'$, which means the number of ways to arrange $L$ pairs of nearest neighbours $x_i=+1$ and $x_j=-1$.
 	
-	Considering the correspondence between $G$ and $G'$, we have $f(L) = g(L)$.
-	Let $e^{-2\beta' J} = t$, remembering that $t = \tanh(\beta J)$.
-	Join equations \eqref{eq:PartitionFunction2DTransformed} and \eqref{eq:PartitionFunction2DNewLattice}
+	Considering the correspondence between $G$ and $G'$, we have $f(L) = g(L)$. Let $e^{-2\beta' J} = t$, remembering that $t = \tanh(\beta J)$. Join equations \eqref{eq:PartitionFunction2DTransformed} and \eqref{eq:PartitionFunction2DNewLattice}
 	\begin{equation} \label{eq:PartitionFunction2DComparison}
 		Z = 2^N \cosh^{2N}(\beta J) \tanh^{-N}(\beta J) Z'
 	\end{equation}
 
-	Now let's take $Z$ as a function of $\beta$, and $Z'$ as a function of $\beta'$.
-	When $\beta$ is finite, $\beta' J = -\frac12 \ln{\tanh(\beta J)}$ is also finite.
-	From equation \eqref{eq:PartitionFunction2DComparison}, we can see that 
-	if $Z(\beta)$ has a singularity at $\beta = \beta_{cr}$, 
-	then $Z'(\beta')$ has a singularity at $\beta' = \beta'_{cr}$.
-	If we assume that there is only one critical temperature $T_{cr}$, 
-	which means only one singularity, we will get
+	Now let's take $Z$ as a function of $\beta$, and $Z'$ as a function of $\beta'$. When $\beta$ is finite, $\beta' J = -\frac12 \ln{\tanh(\beta J)}$ is also finite. From equation \eqref{eq:PartitionFunction2DComparison}, we can see that if $Z(\beta)$ has a singularity at $\beta = \beta_{cr}$, then $Z'(\beta')$ has a singularity at $\beta' = \beta'_{cr}$.
+	If we assume that there is only one critical temperature $T_{cr}$, which means only one singularity, we will get
 	\begin{equation} \label{eq:Singularity}
 		\beta_{cr} = \beta'_{cr}
 	\end{equation}
@@ -324,13 +226,9 @@
 		k_B T_{cr} = \frac{2}{\ln(1+\sqrt{2})}J \approx 2.269J
 	\end{equation}
 
-	We have found $T_{cr}$ of the 2D Ising model, but if we want to calculate the partition function,
-	we still need to figure out $f(L)$, which is a combinatorial problem.
-	You can refer to Feynman's book\cite{feynman1972statistical} for more details.
+	We have found $T_{cr}$ of the 2D Ising model, but if we want to calculate the partition function, we still need to figure out $f(L)$, which is a combinatorial problem. You can refer to Feynman's book\cite{feynman1972statistical} for more details.
 
-	The results we are listing below are obtained from the Onsager solution\cite{onsager_solution}.
-	Let $\lambda$ be the maximum eigenvalue of transfer matrix $P$, like in the 1D case.
-	Then when $N$ is large, the partition function is
+	The results we are listing below are obtained from the Onsager solution\cite{onsager_solution}. Let $\lambda$ be the maximum eigenvalue of transfer matrix $P$, like in the 1D case. Then when $N$ is large, the partition function is
 
 	\begin{equation}
 		\begin{split}
@@ -340,7 +238,7 @@
 		\end{split}
 	\end{equation}
 	
-	Energy:
+	The average energy is
 	\begin{equation}
 		\begin{split}
 			E &= - \frac{\partial \ln{Z}}{\partial \beta} = -N\frac{\partial \ln{\lambda}}{\partial \beta}
@@ -350,13 +248,42 @@
 	\subsection{Metropolis-Hastings Algorithm}
 	\label{metropolis_algorithm}
 	
+	The Metropolis-Hastings algorithm is a Markov Chain Monte Carlo method used to sample from a probability distribution. In this case of the Ising model, the algorithm is as follows:
 	\begin{enumerate}
 		\item Choose a spin at random from the grid.
-		\item Calculate the energy change $\Delta E$ if this spin were to flip.
-		\item If $\Delta E \leq 0$ flip the spin, otherwise flip the spin with probability $e^{-\beta\Delta E}$.
+		\item Calculate the energy change $\Delta H$ if this spin were to flip.
+		\item If $\Delta H \leq 0$ flip the spin, otherwise flip the spin with probability $e^{-\beta\Delta H}$.
 		\item Repeat this process.
 	\end{enumerate}
+
+	To validate the algorithm, we shall prove that when the system reaches equilibrium, we will have a canonical ensemble, i.e. a probability distribution given by equation \eqref{eq:Probability}.
 	
+	Suppose we have an Ising model with $N$ spins. Let $A, B$ be two states of the system. The Markov Chain is described by a transition matrix $\pi$ with elements $\pi_{AB}$, which is the probability of transitioning from state $A$ to state $B$. Only when there is no more than one spin flipped between states $A$ and $B$ can $\pi_{AB}$ be non-zero. For such $A \neq B$, we have
+	\begin{equation}
+		\pi_{AB} = \begin{cases}
+			\frac{1}{N} & H(A) \geq H(B) \\
+			\frac{1}{N} e^{-\beta(H(B) - H(A))} & H(A) < H(B)
+		\end{cases}
+	\end{equation}
+	and $\pi_{AA} = 1 - \sum_{B \neq A} \pi_{AB}$.
+
+	When the equilibrium is reached, for any two states $A, B$, we can expect a balance of probability fluxes
+	\begin{equation}
+		P(A) \pi_{AB} = P(B) \pi_{BA}
+	\end{equation}
+	By simplifying the above equation we get
+	\begin{equation}
+		\frac{P(A)}{P(B)} = \frac{\pi_{BA}}{\pi_{AB}} = \frac{e^{-\beta H(A)}}{e^{-\beta H(B)}}
+	\end{equation}
+	Introduce $Z$ for normalization
+	\begin{equation}
+		\begin{aligned}
+			P(A) &= \frac{e^{-\beta H(A)}}{Z} \\
+			\text{where}\ Z &= \sum_A e^{-\beta H(A)}
+		\end{aligned}
+	\end{equation}
+	which is exactly the canonical ensemble.
+
 	\section{Implementation}
 	
 	The first step was to create a grid of spins. We chose to have the spins randomly distributed but with a bias towards the "up" direction. This ensured the magnetisation, which is sensitive to initial conditions, approached the same average each time.\\
@@ -465,7 +392,7 @@
 	\section{Conclusion}
 	
 	Conclude results.
-		
+	
 	\bibliography{references} 
 
 \end{document}
