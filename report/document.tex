@@ -102,11 +102,11 @@
 	\end{equation}
 	where $\mathrm{Tr}$ denotes the trace of the matrix. Now our task is simplified into calculating the trace of the $N$th power of a $2 \times 2$ matrix. This is solved by diagonalising the matrix, i.e.
 	\begin{equation} \label{eq:MatrixPDiagonal}
-		\bmat{P} = \bmat{U}\bmat{D}\bmat{U}^\dagger
+		\bmat{P} = \bmat{U}\bmat{D}\bmat{U}^\dagger,
 	\end{equation}
-	Here $\bmat{U}$ is a unitary matrix, which means $\bmat{U}^\dagger \bmat{U} = \mathds{1}$, and $\bmat{D} = \mathrm{diag}(\lambda_+, \lambda_-)$ is a diagonal matrix. Finding the trace is now simply
+	where $\bmat{U}$ is a unitary matrix ($\bmat{U}^\dagger \bmat{U} = \mathds{1}$), and $\bmat{D} = \mathrm{diag}(\lambda_+, \lambda_-)$ is a diagonal matrix. Finding the trace is now simply
 	\begin{equation} \label{eq:MatrixPNTrace}
-		\mathrm{Tr}(\bmat{P}^N) = \mathrm{Tr}(\bmat{U}\bmat{D}^N \bmat{U}^\dagger) = \mathrm{Tr}(\bmat{D}^N) = \lambda_+^N + \lambda_-^N
+		\mathrm{Tr}(\bmat{P}^N) = \mathrm{Tr}(\bmat{U}\bmat{D}^N \bmat{U}^\dagger) = \mathrm{Tr}(\bmat{D}^N) = \lambda_+^N + \lambda_-^N.
 	\end{equation}
 
 	Now we only need to find $\lambda_\pm$, the eigenvalues of $\bmat{P}$, which (calculated using Mathematica) are
@@ -216,33 +216,28 @@
 		\item Repeat this process.
 	\end{enumerate}
 
-	To validate the algorithm, we shall prove that when the system reaches equilibrium, we will have a canonical ensemble, i.e. a probability distribution given by equation \eqref{eq:Probability}.
+	To validate the algorithm, we shall prove that when the system reaches equilibrium, we will have a canonical ensemble, i.e. a probability distribution given by equation \eqref{eq:Probability}.\\
 	
 	Suppose we have an Ising model with $N$ spins. Let $A, B$ be two states of the system. The Markov Chain is described by a transition matrix $\pi$ with elements $\pi_{AB}$, which is the probability of transitioning from state $A$ to state $B$. Only when there is no more than one spin flipped between states $A$ and $B$ can $\pi_{AB}$ be non-zero. For such $A \neq B$, we have
 	\begin{equation}
 		\pi_{AB} = \begin{cases}
 			\frac{1}{N} & H(A) \geq H(B) \\
 			\frac{1}{N} e^{-\beta(H(B) - H(A))} & H(A) < H(B)
-		\end{cases}
+		\end{cases},
 	\end{equation}
-	and $\pi_{AA} = 1 - \sum_{B \neq A} \pi_{AB}$.
-
-	When the equilibrium is reached, for any two states $A, B$, we can expect a balance of probability fluxes
+	and $\pi_{AA} = 1 - \sum_{B \neq A} \pi_{AB}$. When equilibrium is reached, for any two states $A, B$, we expect a balance of probability fluxes
 	\begin{equation}
-		P(A) \pi_{AB} = P(B) \pi_{BA}
+		P(A) \pi_{AB} = P(B) \pi_{BA}.
 	\end{equation}
 	By simplifying the above equation we get
 	\begin{equation}
-		\frac{P(A)}{P(B)} = \frac{\pi_{BA}}{\pi_{AB}} = \frac{e^{-\beta H(A)}}{e^{-\beta H(B)}}
+		\frac{P(A)}{P(B)} = \frac{\pi_{BA}}{\pi_{AB}} = \frac{e^{-\beta H(A)}}{e^{-\beta H(B)}}.
 	\end{equation}
-	Introduce $Z$ for normalization
+	Finally, introducing $\displaystyle Z = \sum_A e^{-\beta H(A)}$ for normalization
 	\begin{equation}
-		\begin{aligned}
-			P(A) &= \frac{e^{-\beta H(A)}}{Z} \\
-			\text{where}\ Z &= \sum_A e^{-\beta H(A)}
-		\end{aligned}
+		P(A) = \frac{e^{-\beta H(A)}}{Z},
 	\end{equation}
-	which is exactly the canonical ensemble.
+	which is the canonical ensemble, therefore showing the algorithm is equivalent.
 
 	\section{Implementation}
 	
