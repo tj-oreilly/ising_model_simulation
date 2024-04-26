@@ -349,37 +349,65 @@
 		\begin{center}
 			\begin{tikzpicture}
 				\begin{axis}[width=\textwidth, height=0.6\textwidth, xlabel=$k_BT/J$, ylabel=$M/N$]
-					\addplot [mark=*,mark size=0.5pt,black] table[
+					\addplot [mark=*,mark size=0.2pt,black] table[
 					col sep=comma,
 					x=temp,
 					y=magnetisation,
 					only marks]
-					{csv/mag/mag(0).csv};
+					{csv/mag/magnetisation(-0.0).csv};
 					\addlegendentry{$h = 0.0\;J$}
 					
-					\addplot [mark=*,mark size=0.5pt,orange] table[
+					\addplot [mark=*,mark size=0.2pt,orange] table[
 					col sep=comma,
 					x=temp,
 					y=magnetisation,
 					only marks]
-					{csv/mag/mag(0.1).csv};
+					{csv/mag/magnetisation(-0.1).csv};
 					\addlegendentry{$h = \pm0.1\;J$}
 					
-					\addplot [mark=*,mark size=0.5pt,blue] table[
+					\addplot [mark=*,mark size=0.2pt,blue] table[
 					col sep=comma,
 					x=temp,
 					y=magnetisation,
 					only marks]
-					{csv/mag/mag(0.25).csv};
+					{csv/mag/magnetisation(-0.25).csv};
 					\addlegendentry{$h = \pm0.25\;J$}
 					
-					\addplot [mark=*,mark size=0.5pt,green] table[
+					\addplot [mark=*,mark size=0.2pt,green] table[
 					col sep=comma,
 					x=temp,
 					y=magnetisation,
 					only marks]
-					{csv/mag/mag(0.5).csv};
+					{csv/mag/magnetisation(-0.5).csv};
 					\addlegendentry{$h = \pm0.5\;J$}
+					
+					\addplot [mark=*,mark size=0.2pt,black] table[
+					col sep=comma,
+					x=temp,
+					y=magnetisation,
+					only marks]
+					{csv/magnetisation-1000.csv};
+					
+					\addplot [mark=*,mark size=0.2pt,orange] table[
+					col sep=comma,
+					x=temp,
+					y=magnetisation,
+					only marks]
+					{csv/mag/magnetisation(0.1).csv};
+					
+					\addplot [mark=*,mark size=0.2pt,blue] table[
+					col sep=comma,
+					x=temp,
+					y=magnetisation,
+					only marks]
+					{csv/mag/magnetisation(0.25).csv};
+					
+					\addplot [mark=*,mark size=0.2pt,green] table[
+					col sep=comma,
+					x=temp,
+					y=magnetisation,
+					only marks]
+					{csv/mag/magnetisation(0.5).csv};
 				\end{axis}
 			\end{tikzpicture}
 		\end{center}
