@@ -1,4 +1,0 @@
-- Magnetisation output
-- Try improved stopping condition idea
-- Run with external magnetic field
-- Improve gradient averaging for heat capacity
